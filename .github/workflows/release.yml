@@ -22,7 +22,7 @@ jobs:
         run: npm run setup && npm ci
 
       - name: testing
-        run: npm test
+        run: npm test -- --node
 
       # TODO: add coverage service
       # - name: uploading to codecov
