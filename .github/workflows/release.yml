@@ -19,7 +19,7 @@ jobs:
           registry-url: https://registry.npmjs.org/
 
       - name: installing
-        run: npm ci
+        run: npm run setup && npm ci
 
       - name: testing
         run: npm test
