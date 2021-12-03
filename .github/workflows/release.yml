@@ -1,0 +1,40 @@
+name: release
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  release:
+    runs-on: ubuntu-20.04
+
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: node.js 16
+        uses: actions/setup-node@v1
+        with:
+          node-version: 16
+          registry-url: https://registry.npmjs.org/
+
+      - name: installing
+        run: npm ci
+
+      - name: testing
+        run: npm test
+
+      # TODO: add coverage service
+      # - name: uploading to codecov
+      #   uses: codecov/codecov-action@v1.0.2
+      #   with:
+      #     token: ${{secrets.CODECOV_TOKEN}}
+
+      - name: building
+        run: npm run build
+
+      - name: releasing
+        run: npm run semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}

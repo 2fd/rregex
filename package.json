@@ -1,0 +1,29 @@
+{
+  "name": "rregex",
+  "version": "0.0.0-development",
+  "description": "Rust Regex binding for Javascript",
+  "private": false,
+  "main": "./lib/commonjs.js",
+  "browser": "./lib/browser.js",
+  "module": "./lib/module.js",
+  "types": "./lib/types.d.ts",
+  "devDependencies": {
+    "semantic-release": "^18.0.1"
+  },
+  "scripts": {
+    "setup": "./bin/install.sh",
+    "build": "./bin/build.sh",
+    "test": "wasm-pack test",
+    "semantic-release": "semantic-release"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/2fd/rust-regex-playground.git"
+  },
+  "author": "Fede Ramirez <i@2fd.me>",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/2fd/rust-regex-playground/issues"
+  },
+  "homepage": "https://github.com/2fd/rust-regex-playground#readme"
+}
