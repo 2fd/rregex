@@ -1,4 +1,4 @@
-import { RRegex } from '../lib/commonjs'
+import { RRegex, RRegexSet } from '../lib/commonjs'
 
 describe(`RRegex`, () => {
   test(`toString`, () => {
@@ -206,5 +206,27 @@ describe(`RRegex`, () => {
         }
       }
     })
+  })
+})
+
+
+describe(`RRegexSet`, () => {
+  test(`isMatch`, () => {
+    let set = new RRegexSet(['\\w+', '\\d+'])
+    expect(set.isMatch('foo')).toBe(true)
+    expect(set.isMatch('☃')).toBe(false)
+  })
+
+  test(`matches`, () => {
+    let set = new RRegexSet([
+      '\\w+',
+      '\\d+',
+      '\\pL+',
+      'foo',
+      'bar',
+      'barfoo',
+      'foobar',
+    ])
+    expect(set.matches('foobar')).toEqual([0, 2, 3, 4, 6])
   })
 })

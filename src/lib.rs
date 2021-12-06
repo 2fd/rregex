@@ -5,5 +5,8 @@
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
 mod macros;
-mod rregex;
 mod utils;
+mod types;
+mod rregex;
+mod rregexset;
+mod escape;

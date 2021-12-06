@@ -106,6 +106,16 @@ impl ToJs for Vec<JsValue> {
   }
 }
 
+impl ToJs for Vec<usize> {
+  fn to_js(&self) -> JsValue {
+    let arr: Array = Array::new();
+    for item in self {
+      arr.push(&JsValue::from(item.to_owned() as f64));
+    }
+    JsValue::from(arr)
+  }
+}
+
 impl<T: ToJs> ToJs for Vec<T> {
   fn to_js(&self) -> JsValue {
     let arr: Array = Array::new();
