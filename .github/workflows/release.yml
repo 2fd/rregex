@@ -21,17 +21,20 @@ jobs:
       - name: installing
         run: npm run setup && npm ci
 
-      - name: testing
-        run: npm test -- --node
+      - name: testing wasm
+        run: npm test:rs -- --node
+
+      - name: building
+        run: npm run build
+
+      - name: testing builded files
+        run: npm test:ts -- --node
 
       # TODO: add coverage service
       # - name: uploading to codecov
       #   uses: codecov/codecov-action@v1.0.2
       #   with:
       #     token: ${{secrets.CODECOV_TOKEN}}
-
-      - name: building
-        run: npm run build
 
       - name: releasing
         run: npm run semantic-release

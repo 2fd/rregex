@@ -85,14 +85,14 @@ impl<V: ToJs> ToJs for Option<V> {
   fn to_js(&self) -> JsValue {
     match self {
       Some(v) => v.to_js(),
-      None => JsValue::NULL,
+      None => JsValue::UNDEFINED,
     }
   }
 }
 
 impl ToJs for String {
   fn to_js(&self) -> JsValue {
-    JsObject!("@type" => "struct", "@name" => "std::string::String", "@value" => self)
+    JsValue::from_str(self)
   }
 }
 
