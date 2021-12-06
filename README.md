@@ -2,13 +2,19 @@
 
 A WebAssembly build of [Rust Regex](https://docs.rs/regex/latest/regex/) for Javascript
 
-> Note: this project is not intended to be use in production
+> Note: this project is not intended to be used in production jet
 
 ## Why Rust Regex
 
 Rust has a powerful Regex library with a lot of features that don't exists en the standard `Regex` object
 
 [See the official documentation](https://docs.rs/regex/latest/regex/#syntax) for more detail
+
+## Install
+
+```bash
+npm install rregex
+```
 
 ## API
 
