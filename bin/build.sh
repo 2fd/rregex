@@ -27,6 +27,7 @@ for t in lib/*.d.ts; do
 done
 
 # remove unused files
+rm lib/*.tmp
 rm lib/commonjs_bg.wasm
 rm lib/commonjs_bg.wasm.d.ts
 rm lib/module_bg.wasm
