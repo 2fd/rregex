@@ -16,6 +16,12 @@
     "test": "wasm-pack test",
     "semantic-release": "semantic-release"
   },
+  "release": {
+    "ci": false,
+    "branches": [
+      "master"
+    ]
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/2fd/rust-regex-playground.git"
