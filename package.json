@@ -16,7 +16,6 @@
     "babel-jest": "^27.4.2",
     "jest": "^27.4.3",
     "semantic-release": "^18.0.1",
-    "ts-node": "^10.4.0",
     "typescript": "^4.5.2"
   },
   "scripts": {

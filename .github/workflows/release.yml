@@ -22,7 +22,7 @@ jobs:
         run: npm run setup && npm ci
 
       - name: testing wasm
-        run: npm test:rs -- --node
+        run: npm run test:rs -- --node
 
       - name: building
         run: npm run build
