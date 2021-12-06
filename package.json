@@ -24,12 +24,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/2fd/rust-regex-playground.git"
+    "url": "git+https://github.com/2fd/rregex.git"
   },
   "author": "Fede Ramirez <i@2fd.me>",
   "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/2fd/rust-regex-playground/issues"
+    "url": "https://github.com/2fd/rregex/issues"
   },
-  "homepage": "https://github.com/2fd/rust-regex-playground#readme"
+  "homepage": "https://github.com/2fd/rregex#readme"
 }
