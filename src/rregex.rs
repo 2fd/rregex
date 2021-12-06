@@ -6,6 +6,7 @@ use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsValue;
 
 /// A compiled regular expression for matching Unicode strings.
+/// @see https://docs.rs/regex/latest/regex/
 #[wasm_bindgen]
 pub struct RRegExp {
   regex: regex::Regex,
@@ -26,7 +27,7 @@ impl RRegExp {
 
   /// Returns true if and only if there is a match for the regex in the string given.
   /// It is recommended to use this method if all you need to do is test a match, since the underlying matching engine may be able to do less work.
-  /// @see https://docs.rs/regex/latest/regex/struct.Regex.html#method.find
+  /// @see https://docs.rs/regex/latest/regex/struct.Regex.html#method.is_match
   #[wasm_bindgen(js_name = isMatch)]
   pub fn is_match(&self, text: &str) -> bool {
     self.regex.is_match(text)
@@ -34,7 +35,7 @@ impl RRegExp {
 
   /// Returns the same as is_match, but starts the search at the given offset.
   /// The significance of the starting point is that it takes the surrounding context into consideration. For example, the `\A` anchor can only match when `start == 0`.
-  /// https://docs.rs/regex/latest/regex/struct.Regex.html#method.is_match_at
+  /// @see https://docs.rs/regex/latest/regex/struct.Regex.html#method.is_match_at
   #[wasm_bindgen(js_name = isMatchAt)]
   pub fn is_match_at(&self, text: &str, start: usize) -> bool {
     if text.len() < start {
@@ -44,9 +45,9 @@ impl RRegExp {
     }
   }
 
-  /// Returns the start and end byte range of the leftmost-first match in `text`. If no match exists, then `null` is returned.
+  /// Returns the start and end byte range of the leftmost-first match in `text`. If no match exists, then `undefined` is returned.
   /// Note that this should only be used if you want to discover the position of the match. Testing the existence of a match is faster if you use `is_match`.
-  /// https://docs.rs/regex/latest/regex/struct.Regex.html#method.find
+  /// @see https://docs.rs/regex/latest/regex/struct.Regex.html#method.find
   pub fn find(&self, text: &str) -> JsValue {
     self.regex.find(text).to_js()
   }
@@ -141,6 +142,7 @@ impl RRegExp {
     result(parser.parse(self.regex.as_str()))
   }
 
+  /// Returns a string representing the regular expression
   #[wasm_bindgen(js_name = toString)]
   pub fn to_string(&self) -> String {
     self.regex.as_str().to_owned()
