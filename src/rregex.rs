@@ -8,20 +8,20 @@ use wasm_bindgen::JsValue;
 /// A compiled regular expression for matching Unicode strings.
 /// @see https://docs.rs/regex/latest/regex/
 #[wasm_bindgen]
-pub struct RRegExp {
+pub struct RRegex {
   regex: regex::Regex,
 }
 
 #[wasm_bindgen]
-impl RRegExp {
+impl RRegex {
 
   /// Compiles a regular expression. Once compiled, it can be used repeatedly to search, split or replace text in a string.
   /// If an invalid expression is given, then an error is returned.
   #[wasm_bindgen(constructor)]
-  pub fn new(re: &str) -> Result<RRegExp, JsValue> {
+  pub fn new(re: &str) -> Result<RRegex, JsValue> {
     match regex::Regex::new(re) {
       Err(e) => Err(error(e)),
-      Ok(regex) => Ok(RRegExp { regex }),
+      Ok(regex) => Ok(RRegex { regex }),
     }
   }
 
