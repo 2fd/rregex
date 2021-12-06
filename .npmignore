@@ -5,6 +5,7 @@ src/
 target/
 node_modules/
 bin/
+*.tmp
 Cargo.lock
 Cargo.toml
 LICENSE
