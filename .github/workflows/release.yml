@@ -28,7 +28,7 @@ jobs:
         run: npm run build
 
       - name: testing builded files
-        run: npm run test:ts -- --node
+        run: npm run test:ts
 
       # TODO: add coverage service
       # - name: uploading to codecov
