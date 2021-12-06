@@ -8,12 +8,23 @@
   "module": "./lib/module.js",
   "types": "./lib/types.d.ts",
   "devDependencies": {
-    "semantic-release": "^18.0.1"
+    "@babel/plugin-proposal-class-properties": "^7.16.0",
+    "@babel/preset-env": "^7.16.4",
+    "@babel/preset-typescript": "^7.16.0",
+    "@types/jest": "^27.0.3",
+    "@types/node": "^16.11.11",
+    "babel-jest": "^27.4.2",
+    "jest": "^27.4.3",
+    "semantic-release": "^18.0.1",
+    "ts-node": "^10.4.0",
+    "typescript": "^4.5.2"
   },
   "scripts": {
     "setup": "./bin/install.sh",
     "build": "./bin/build.sh",
-    "test": "wasm-pack test",
+    "test": "wasm-pack test  --node && jest --passWithNoTests",
+    "test:rs": "wasm-pack test",
+    "test:ts": "jest",
     "semantic-release": "semantic-release"
   },
   "release": {
