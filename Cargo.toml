@@ -1,5 +1,5 @@
 [package]
-name = "rust-regex-playground"
+name = "rregex"
 description = ""
 license = "MIT"
 version = "0.1.0"
@@ -7,8 +7,8 @@ authors = [ "Fede Ramirez <i@2fd.me>" ]
 publish = false
 readme = "README.md"
 edition = "2018"
-homepage = "https://2fd.github.io/rust-regex-playground"
-repository = "https://github.com/2fd/rust-regex-playground"
+homepage = "https://2fd.github.io/rregex"
+repository = "https://github.com/2fd/rregex"
 
 [dependencies]
 toml = "0.5"
