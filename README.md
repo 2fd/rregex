@@ -4,6 +4,23 @@ A WebAssembly build of [Rust Regex](https://docs.rs/regex/latest/regex/) for Jav
 
 > Note: this project is not intended to be used in production jet
 
+* [Why Rust Regex](#why-rust-regex)
+* [Install](#install)
+* [API](#api)
+  * [`isMatch(text: string): boolean`](#ismatchtext-string-boolean)
+  * [`isMatchAt(text: string, limit: number): boolean`](#ismatchattext-string-limit-number-boolean)
+  * [`find(text: string): Match | undefined;`](#findtext-string-match--undefined)
+  * [`findAt(text: string): Match | undefined;`](#findattext-string-match--undefined)
+  * [`findAll(text: string): Match[];`](#findalltext-string-match)
+  * [`replace(text: string, rep: string): string;`](#replacetext-string-rep-string-string)
+  * [`replaceAll(text: string, rep: string): string;`](#replacealltext-string-rep-string-string)
+  * [`replacen(text: string, limit: number, rep: string): string;`](#replacentext-string-limit-number-rep-string-string)
+  * [`split(text: string): string[];`](#splittext-string-string)
+  * [`splitn(text: string, limit: number): string[];`](#splitntext-string-limit-number-string)
+  * [`shortestMatch(text: string): number | undefined;`](#shortestmatchtext-string-number--undefined)
+  * [`shortestMatchAt(text: string, limit: number): number | undefined;`](#shortestmatchattext-string-limit-number-number--undefined)
+* [Known Issues](#known-issues)
+
 ## Why Rust Regex
 
 Rust has a powerful Regex library with a lot of features that don't exists en the standard `Regex` object
@@ -28,7 +45,7 @@ assert.equal(re.isMatch("2014-01-01"), true);
 
 > Note: It doesn't take a second parameter because fags are part of the syntax ([See Documentation](https://docs.rs/regex/latest/regex/#grouping-and-flags))
 
-### `isMatch(text: string): boolean`
+### `isMatch(text: string): boolean;`
 
 Returns true if and only if there is a match for the regex in the string given. ([See Documentation](https://docs.rs/regex/latest/regex/struct.Regex.html#method.is_match))
 
@@ -38,7 +55,7 @@ const re = new RRegex("\\b\\w{13}\\b");
 expect(re.isMatch(text)).toEqual(true);
 ```
 
-### `isMatchAt(text: string, limit: number): boolean`
+### `isMatchAt(text: string, limit: number): boolean;`
 
 Returns the same as is_match, but starts the search at the given offset. ([See Documentation](https://docs.rs/regex/latest/regex/struct.Regex.html#method.is_match_at))
 
@@ -189,3 +206,26 @@ This method may have the same performance characteristics as `is_match`, except 
 ### `shortestMatchAt(text: string, limit: number): number | undefined;`
 
 Returns the same as shortest_match, but starts the search at the given offset. ([See Documentation](https://docs.rs/regex/latest/regex/struct.Regex.html#method.shortest_match_at))
+
+## Known Issues
+
+If you call `splitn(text, limit)` and the expected result length is equal to `limit - 1` the result will include an extra item `""`, this behavior does not happen if `limit` es greater.
+
+```ts
+  const regex = new RRegex(',')
+  expect(regex.splitn('a,b,c', 0)).toEqual([])
+  expect(regex.splitn('a,b,c', 1)).toEqual(['a,b,c'])
+  expect(regex.splitn('a,b,c', 2)).toEqual(['a', 'b,c'])
+  expect(regex.splitn('a,b,c', 3)).toEqual(['a', 'b', 'c'])
+
+  // This result includes an unexpected extra item
+  expect(regex.splitn('a,b,c', 4)).toEqual(['a', 'b', 'c', ''])
+  expect(regex.splitn('a,b,c', 5)).toEqual(['a', 'b', 'c'])
+
+  expect(regex.splitn('abc', 0)).toEqual([])
+  expect(regex.splitn('abc', 1)).toEqual(['abc'])
+
+  // This result includes an unexpected extra item
+  expect(regex.splitn('abc', 2)).toEqual(['abc', ''])
+  expect(regex.splitn('abc', 3)).toEqual(['abc'])
+```
