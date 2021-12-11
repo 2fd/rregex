@@ -4,8 +4,8 @@ on:
   push:
     branches:
       - master
-      - v1.1
-      - v1.0
+      - 1.1.x
+      - 1.0.x
 
 jobs:
   release:
