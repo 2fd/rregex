@@ -10,3 +10,6 @@ Cargo.lock
 Cargo.toml
 LICENSE
 README.md
+babel.config.js
+jest.transform.js
+test/
