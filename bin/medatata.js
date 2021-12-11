@@ -40,6 +40,3 @@ module.exports.metadata = ${metadata}
 appendFileSync(resolve(__dirname, `../lib/browser.js`), `
 export const metadata = ${metadata}
 `)
-
-
-writeFileSync(resolve(__dirname, '../metadata.json'), metadata)
