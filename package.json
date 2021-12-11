@@ -30,7 +30,9 @@
   "release": {
     "ci": false,
     "branches": [
-      "master"
+      { "name": "1.0.x", "range": "1.0.x", "channel": "1.0.x"},
+      { "name": "1.1.x", "range": "1.1.x", "channel": "1.1.x"},
+      { "name": "master" }
     ]
   },
   "repository": {
