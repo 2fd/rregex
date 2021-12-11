@@ -6,6 +6,8 @@ mv lib/browser_bg.wasm.d.ts lib/rregex.wasm.d.ts
 wasm-pack build -d lib --out-name commonjs --release --target nodejs
 wasm-pack build -d lib --out-name module --release --target bundler
 
+node bin/medatata.js
+
 rm lib/module.js
 mv lib/module_bg.js lib/module.js
 

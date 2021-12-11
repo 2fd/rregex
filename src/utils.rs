@@ -1,7 +1,4 @@
-use crate::{set, JsObject};
 use js_sys::{Array, Error};
-use toml;
-use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsValue;
 
 #[allow(dead_code)]
@@ -15,55 +12,6 @@ pub fn set_panic_hook() {
   #[cfg(feature = "console_error_panic_hook")]
   console_error_panic_hook::set_once();
 }
-
-#[wasm_bindgen]
-pub fn get_metadata() -> JsValue {
-  let obj = JsObject!(
-    "name" => env!("CARGO_PKG_NAME"),
-    "version" => env!("CARGO_PKG_VERSION"),
-    "authors" => env!("CARGO_PKG_AUTHORS")
-    // ,
-    // "description" => env!("CARGO_PKG_DESCRIPTION"),
-    // "homepage" => env!("CARGO_PKG_HOMEPAGE"),
-    // "repository" => env!("CARGO_PKG_REPOSITORY")
-  );
-
-  let cargo: toml::Value = toml::from_str(include_str!("../Cargo.toml")).unwrap();
-
-  if let Some(pkg) = cargo.get("package") {
-    if let Some(description) = pkg.get("description") {
-      if let Some(value) = description.as_str() {
-        set!(&obj, "description" => value);
-      };
-    };
-    if let Some(homepage) = pkg.get("homepage") {
-      if let Some(value) = homepage.as_str() {
-        set!(&obj, "homepage" => value);
-      };
-    };
-    if let Some(repository) = pkg.get("repository") {
-      if let Some(value) = repository.as_str() {
-        set!(&obj, "repository" => value);
-      };
-    };
-  };
-
-  if let Some(pkg) = cargo.get("dependencies") {
-    if let Some(regex) = pkg.get("regex") {
-      if let Some(value) = regex.as_str() {
-        set!(&obj, "regex" => value);
-      };
-    };
-    if let Some(regex_syntax) = pkg.get("regex-syntax") {
-      if let Some(value) = regex_syntax.as_str() {
-        set!(&obj, "regex-syntax" => value);
-      };
-    };
-  };
-
-  obj
-}
-
 pub trait ToJs {
   fn to_js(&self) -> JsValue;
 }

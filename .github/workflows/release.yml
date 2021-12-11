@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - master
+      - v1.1
+      - v1.0
 
 jobs:
   release:
@@ -25,7 +27,7 @@ jobs:
         run: npm run test:rs -- --node
 
       - name: building
-        run: npm run build && ls lib
+        run: npm run build
 
       - name: testing builded files
         run: npm run test:ts
