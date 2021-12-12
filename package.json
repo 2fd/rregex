@@ -32,6 +32,8 @@
     "branches": [
       { "name": "1.0.x", "range": "1.0.x", "channel": "1.0.x"},
       { "name": "1.1.x", "range": "1.1.x", "channel": "1.1.x"},
+      { "name": "1.2.x", "range": "1.2.x", "channel": "1.2.x"},
+      { "name": "1.3.x", "range": "1.3.x", "channel": "1.3.x"},
       { "name": "master" }
     ]
   },

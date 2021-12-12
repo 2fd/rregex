@@ -209,7 +209,7 @@ Returns the same as shortest_match, but starts the search at the given offset. (
 
 ## Known Issues
 
-If you call `splitn(text, limit)` and the expected result length is equal to `limit - 1` the result will include an extra item `""`, this behavior does not happen if `limit` es greater.
+If you call `splitn(text, limit)` and the expected result length is equal to `limit - 1` the result will include an extra item `""`, this behavior does not happen if `limit` es greater. **`fixed at >=1.3`**
 
 ```ts
   const regex = new RRegex(',')

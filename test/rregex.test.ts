@@ -152,11 +152,11 @@ describe(`RRegex`, () => {
     expect(regex.splitn('a,b,c', 1)).toEqual(['a,b,c'])
     expect(regex.splitn('a,b,c', 2)).toEqual(['a', 'b,c'])
     expect(regex.splitn('a,b,c', 3)).toEqual(['a', 'b', 'c'])
-    expect(regex.splitn('a,b,c', 4)).toEqual(['a', 'b', 'c', ''])
+    expect(regex.splitn('a,b,c', 4)).toEqual(['a', 'b', 'c'])
     expect(regex.splitn('a,b,c', 5)).toEqual(['a', 'b', 'c'])
     expect(regex.splitn('abc', 0)).toEqual([])
     expect(regex.splitn('abc', 1)).toEqual(['abc'])
-    expect(regex.splitn('abc', 2)).toEqual(['abc', ''])
+    expect(regex.splitn('abc', 2)).toEqual(['abc'])
     expect(regex.splitn('abc', 3)).toEqual(['abc'])
 
     const re = new RRegex('\\W+')
