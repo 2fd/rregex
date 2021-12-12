@@ -9,9 +9,7 @@ const HIR_TYPE: &'static str = r#"
 export type Hir = {
   '@type': 'struct'
   '@name': 'regex_syntax::hir::Hir'
-  bold: boolean;
-  italic: boolean;
-  size: number;
+  kind: HirKind
 }
 "#;
 
