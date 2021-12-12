@@ -201,12 +201,12 @@ describe(`RRegex`, () => {
         "@name": "regex_syntax::hir::HirKind",
         "@type": "enum",
         "@variant": "Literal",
-        "value": {
+        "@values": [{
           "@name": "regex_syntax::hir::Literal",
           "@type": "enum",
           "@variant": "Unicode",
-          "value": "a"
-        }
+          "@values": ["a"]
+        }]
       }
     })
   })
