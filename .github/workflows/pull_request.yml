@@ -1,0 +1,37 @@
+name: pull_request
+
+on:
+  pull_request:
+    branches:
+      - master
+      - 1.5.x
+      - 1.4.x
+      - 1.3.x
+      - 1.2.x
+      - 1.1.x
+      - 1.0.x
+
+jobs:
+  release:
+    runs-on: ubuntu-20.04
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: node.js 16
+        uses: actions/setup-node@v2
+        with:
+          node-version: 16
+          registry-url: https://registry.npmjs.org/
+
+      - name: installing
+        run: npm run setup && npm ci
+
+      - name: testing wasm
+        run: npm run test:rs -- --node
+
+      - name: building
+        run: npm run build
+
+      - name: testing builded files
+        run: npm run test:ts
