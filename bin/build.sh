@@ -1,3 +1,4 @@
+#!/bin/bash
 wasm-pack build -d lib --out-name browser --release --target web
 cp lib/browser.d.ts lib/types.d.ts
 mv lib/browser_bg.wasm lib/rregex.wasm

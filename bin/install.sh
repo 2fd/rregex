@@ -1,3 +1,4 @@
+#!/bin/bash
 CARGO_VERSION=$(cargo version)
 
 ## Install rust if is missing
