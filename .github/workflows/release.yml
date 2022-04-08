@@ -33,6 +33,9 @@ jobs:
       - name: building
         run: npm run build
 
+      - name: list files
+        run: ls . && ls ./lib
+
       - name: testing builded files
         run: npm run test:ts
 
