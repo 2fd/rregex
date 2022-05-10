@@ -25,8 +25,7 @@ jobs:
           registry-url: https://registry.npmjs.org/
 
       - name: setup
-        run: ./bin/install.sh
-        shell: bash
+        run: bash ./bin/install.sh
 
       - name: installing
         run: npm ci
@@ -35,8 +34,7 @@ jobs:
         run: npm run test:rs -- --node
 
       - name: building
-        run: ./bin/build.sh
-        shell: bash
+        run: bash ./bin/build.sh
 
       - name: list files
         run: ls . && ls ./lib
