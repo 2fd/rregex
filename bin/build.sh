@@ -1,8 +1,8 @@
 #!/bin/bash
 wasm-pack build -d lib --out-name browser --release --target web
 cp lib/browser.d.ts lib/types.d.ts
-mv lib/browser_bg.wasm lib/rregex.wasm
-mv lib/browser_bg.wasm.d.ts lib/rregex.wasm.d.ts
+cp lib/browser_bg.wasm lib/rregex.wasm
+cp lib/browser_bg.wasm.d.ts lib/rregex.wasm.d.ts
 
 wasm-pack build -d lib --out-name commonjs --release --target nodejs
 wasm-pack build -d lib --out-name module --release --target bundler
@@ -10,7 +10,8 @@ wasm-pack build -d lib --out-name module --release --target bundler
 node bin/medatata.js
 
 rm lib/module.js
-mv lib/module_bg.js lib/module.js
+cp lib/module_bg.js lib/module.js
+rm lib/module_bg.js
 
 # use a single wasm file
 if [[ "$OSTYPE" == "darwin"* ]]; then
@@ -50,6 +51,8 @@ done
 if [[ "$OSTYPE" == "darwin"* ]]; then
   rm lib/*.tmp
 fi
+rm lib/browser_bg.wasm
+rm lib/browser_bg.wasm.d.ts
 rm lib/commonjs_bg.wasm
 rm lib/commonjs_bg.wasm.d.ts
 rm lib/module_bg.wasm
