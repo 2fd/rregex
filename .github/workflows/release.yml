@@ -24,14 +24,19 @@ jobs:
           node-version: 16
           registry-url: https://registry.npmjs.org/
 
+      - name: setup
+        run: ./bin/install.sh
+        shell: bash
+
       - name: installing
-        run: npm run setup && npm ci
+        run: npm ci
 
       - name: testing wasm
         run: npm run test:rs -- --node
 
       - name: building
-        run: npm run build
+        run: ./bin/build.sh
+        shell: bash
 
       - name: list files
         run: ls . && ls ./lib
