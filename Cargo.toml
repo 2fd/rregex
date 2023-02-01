@@ -30,7 +30,7 @@ console_error_panic_hook = { version = "0.1.1", optional = true }
 wee_alloc = { version = "0.4.2", optional = true }
 
 [dev-dependencies]
-wasm-bindgen-test = "0.3.19"
+wasm-bindgen-test = "0.3.34"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
