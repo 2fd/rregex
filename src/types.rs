@@ -257,46 +257,95 @@ impl ToJs for hir::ClassBytesRange {
 }
 
 #[wasm_bindgen(typescript_custom_section)]
-const ANCHOR_TYPE: &'static str = r#"
-export type Anchor =
-  | AnchorStartLineVariant
-  | AnchorEndLineVariant
-  | AnchorStartTextVariant
-  | AnchorEndTextVariant
+const LOOK_TYPE: &'static str = r#"
+export type Look =
+  | LookStartVariant
+  | LookEndVariant
+  | LookStartLFVariant
+  | LookEndLFVariant
+  | LookStartCRLFVariant
+  | LookEndCRLFVariant
+  | LookWordAsciiVariant
+  | LookWordAsciiNegateVariant
+  | LookWordUnicodeVariant
+  | LookWordUnicodeNegateVariant
 
-export type AnchorStartLineVariant = {
+export type LookStartVariant = {
   '@type': 'struct'
-  '@name': 'regex_syntax::hir::Anchor'
-  '@variant': 'StartLine'
+  '@name': 'regex_syntax::hir:Look'
+  '@variant': 'Start'
 }
 
-export type AnchorEndLineVariant = {
+export type LookEndVariant = {
   '@type': 'struct'
-  '@name': 'regex_syntax::hir::Anchor'
-  '@variant': 'EndLine'
+  '@name': 'regex_syntax::hir:Look'
+  '@variant': 'End'
 }
 
-export type AnchorStartTextVariant = {
+export type LookStartLFVariant = {
   '@type': 'struct'
-  '@name': 'regex_syntax::hir::Anchor'
-  '@variant': 'StartText'
+  '@name': 'regex_syntax::hir:Look'
+  '@variant': 'StartLF'
 }
 
-export type AnchorEndTextVariant = {
+export type LookEndLFVariant = {
   '@type': 'struct'
-  '@name': 'regex_syntax::hir::Anchor'
-  '@variant': 'EndText'
+  '@name': 'regex_syntax::hir:Look'
+  '@variant': 'EndLF'
 }
+
+export type LookStartCRLFVariant = {
+  '@type': 'struct'
+  '@name': 'regex_syntax::hir:Look'
+  '@variant': 'StartCRLF'
+}
+
+export type LookEndCRLFVariant = {
+  '@type': 'struct'
+  '@name': 'regex_syntax::hir:Look'
+  '@variant': 'EndCRLF'
+}
+
+export type LookWordAsciiVariant = {
+  '@type': 'struct'
+  '@name': 'regex_syntax::hir:Look'
+  '@variant': 'WordAscii'
+}
+
+export type LookWordAsciiNegateVariant = {
+  '@type': 'struct'
+  '@name': 'regex_syntax::hir:Look'
+  '@variant': 'WordAsciiNegate'
+}
+
+export type LookWordUnicodeVariant = {
+  '@type': 'struct'
+  '@name': 'regex_syntax::hir:Look'
+  '@variant': 'WordUnicode'
+}
+
+export type LookWordUnicodeNegateVariant = {
+  '@type': 'struct'
+  '@name': 'regex_syntax::hir:Look'
+  '@variant': 'WordUnicodeNegate'
+}
+
 "#;
 
-impl ToJs for hir::Anchor {
+impl ToJs for hir::Look {
   fn to_js(&self) -> JsValue {
-    let current = JsObject!("@type" => "enum", "@name" => "regex_syntax::hir::Anchor");
+    let current = JsObject!("@type" => "enum", "@name" => "regex_syntax::hir::Look");
     match self {
-      hir::Anchor::StartLine => set!(&current, "@variant" => "StartLine"),
-      hir::Anchor::EndLine => set!(&current, "@variant" => "EndLine"),
-      hir::Anchor::StartText => set!(&current, "@variant" => "StartText"),
-      hir::Anchor::EndText => set!(&current, "@variant" => "EndText"),
+      hir::Look::Start  => set!(&current, "@variant" => "Start"),
+      hir::Look::End  => set!(&current, "@variant" => "End"),
+      hir::Look::StartLF  => set!(&current, "@variant" => "StartLF"),
+      hir::Look::EndLF  => set!(&current, "@variant" => "EndLF"),
+      hir::Look::StartCRLF  => set!(&current, "@variant" => "StartCRLF"),
+      hir::Look::EndCRLF  => set!(&current, "@variant" => "EndCRLF"),
+      hir::Look::WordAscii  => set!(&current, "@variant" => "WordAscii"),
+      hir::Look::WordAsciiNegate  => set!(&current, "@variant" => "WordAsciiNegate"),
+      hir::Look::WordUnicode  => set!(&current, "@variant" => "WordUnicode"),
+      hir::Look::WordUnicodeNegate  => set!(&current, "@variant" => "WordUnicodeNegate"),
     };
     current
   }
