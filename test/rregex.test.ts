@@ -726,8 +726,9 @@ describe(`RRegex`, () => {
                     {
                       "@name": "regex_syntax::hir::ClassBytesRange",
                       "@type": "struct",
-                      "end": 10,
                       "start": 48,
+                      "end": 57,
+                      "len": 10
                     }
                   ]
                 }
@@ -864,7 +865,6 @@ describe(`RRegex`, () => {
 
     test('regex_syntax::hir::Capture', () => {
       const regex = new RRegex('(?<test>a)')
-      console.log(JSON.stringify(regex.syntax(), null, 2))
       expect(regex.syntax()).toEqual({
         "@name": "regex_syntax::hir::Hir",
         "@type": "struct",
