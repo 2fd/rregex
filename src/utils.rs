@@ -38,6 +38,12 @@ impl<V: ToJs> ToJs for Option<V> {
   }
 }
 
+impl ToJs for u32 {
+  fn to_js(&self) -> JsValue {
+      JsValue::from_f64(self.to_owned() as f64)
+  }
+}
+
 impl ToJs for String {
   fn to_js(&self) -> JsValue {
     JsValue::from_str(self)

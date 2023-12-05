@@ -1,6 +1,5 @@
 use crate::utils::ToJs;
 use crate::{set, JsArray, JsObject};
-use regex;
 use regex_syntax::hir;
 use wasm_bindgen::prelude::*;
 
@@ -347,9 +346,10 @@ const REPETITION_TYPE: &'static str = r#"
 export type Repetition = {
   '@type': 'struct'
   '@name': 'regex_syntax::hir::Repetition'
+  min: number
+  max?: number
   greedy: boolean
-  kind: RepetitionKind
-  hir: Hir
+  sub: Hir
 }
 "#;
 
@@ -358,9 +358,11 @@ impl ToJs for hir::Repetition {
     JsObject!(
       "@type" => "struct",
       "@name" => "regex_syntax::hir::Repetition",
+      "min" => self.min.to_js(),
+      "max" => self.min.to_js(),
       "greedy" => self.greedy,
-      "kind" => self.kind.to_js(),
-      "hir" => self.hir.to_js()
+      "kind" => self.sub.to_js(),
+      "hir" => self.sub.to_js()
     )
   }
 }
