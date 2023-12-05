@@ -32,55 +32,55 @@ export type HirKind =
   | HirKindAlternationVariant
 
 export type HirKindEmptyVariant = {
-  '@type': 'struct'
+  '@type': 'enum'
   '@name': 'regex_syntax::hir::HirKind'
   '@variant': 'Empty'
 }
 
 export type HirKindLiteralVariant = {
-  '@type': 'struct'
+  '@type': 'enum'
   '@name': 'regex_syntax::hir::HirKind'
   '@variant': 'Literal'
   '@values': [Literal]
 }
 
 export type HirKindClassVariant = {
-  '@type': 'struct'
+  '@type': 'enum'
   '@name': 'regex_syntax::hir::HirKind'
   '@variant': 'Class'
   '@values': [Class]
 }
 
 export type HirKindLookVariant = {
-  '@type': 'struct'
+  '@type': 'enum'
   '@name': 'regex_syntax::hir::HirKind'
   '@variant': 'Look'
   '@values': [Look]
 }
 
 export type HirKindRepetitionVariant = {
-  '@type': 'struct'
+  '@type': 'enum'
   '@name': 'regex_syntax::hir::HirKind'
   '@variant': 'Repetition'
   '@values': [Repetition]
 }
 
 export type HirKindCaptureVariant = {
-  '@type': 'struct'
+  '@type': 'enum'
   '@name': 'regex_syntax::hir::HirKind'
   '@variant': 'Capture'
   '@values': [Capture]
 }
 
 export type HirKindConcatVariant = {
-  '@type': 'struct'
+  '@type': 'enum'
   '@name': 'regex_syntax::hir::HirKind'
   '@variant': 'Concat'
   '@values': [Hir[]]
 }
 
 export type HirKindAlternationVariant = {
-  '@type': 'struct'
+  '@type': 'enum'
   '@name': 'regex_syntax::hir::HirKind'
   '@variant': 'Alternation'
   '@values': [Hir[]]
@@ -130,14 +130,14 @@ export type Class =
   | ClassByteVariant
 
 export type ClassUnicodeVariant = {
-  '@type': 'struct'
+  '@type': 'enum'
   '@name': 'regex_syntax::hir::Class'
   '@variant': 'Unicode'
   '@values': [ClassUnicode]
 }
 
 export type ClassByteVariant = {
-  '@type': 'struct'
+  '@type': 'enum'
   '@name': 'regex_syntax::hir::Class'
   '@variant': 'Bytes'
   '@values': [ClassBytes]
@@ -166,10 +166,12 @@ export type ClassUnicode = {
 
 impl ToJs for hir::ClassUnicode {
   fn to_js(&self) -> JsValue {
-    let current = JsObject!("@type" => "struct", "@name" => "regex_syntax::hir::ClassUnicode");
     let ranges: Vec<hir::ClassUnicodeRange> = self.ranges().iter().map(|c| c.to_owned()).collect();
-    set!(&current, "ranges" => ranges.to_js());
-    current
+    JsObject!(
+      "@type" => "struct",
+      "@name" => "regex_syntax::hir::ClassUnicode",
+      "ranges" => ranges.to_js()
+    )
   }
 }
 
@@ -180,6 +182,7 @@ export type ClassUnicodeRange = {
   '@name': 'regex_syntax::hir::ClassUnicodeRange'
   start: string
   end: string
+  len: number
 }
 "#;
 
@@ -189,7 +192,8 @@ impl ToJs for hir::ClassUnicodeRange {
       "@type" => "struct",
       "@name" => "regex_syntax::hir::ClassUnicodeRange",
       "start" => self.start().to_string(),
-      "end" => self.end().to_string()
+      "end" => self.end().to_string(),
+      "len" => self.len().to_owned()
     )
   }
 }
@@ -205,10 +209,12 @@ export type ClassBytes = {
 
 impl ToJs for hir::ClassBytes {
   fn to_js(&self) -> JsValue {
-    let current = JsObject!("@type" => "struct", "@name" => "regex_syntax::hir::ClassBytes");
     let ranges: Vec<hir::ClassBytesRange> = self.ranges().iter().map(|c| c.to_owned()).collect();
-    set!(&current, "ranges" => ranges.to_js());
-    current
+    JsObject!(
+      "@type" => "struct",
+      "@name" => "regex_syntax::hir::ClassBytes",
+      "ranges" => ranges.to_js()
+    )
   }
 }
 
@@ -219,6 +225,7 @@ export type ClassBytesRange = {
   '@name': 'regex_syntax::hir::ClassBytesRange'
   start: number
   end: number
+  len: number
 }
 "#;
 
@@ -227,8 +234,9 @@ impl ToJs for hir::ClassBytesRange {
     JsObject!(
       "@type" => "struct",
       "@name" => "regex_syntax::hir::ClassBytesRange",
-      "start" => self.start().to_owned() as i32,
-      "end" => self.end().to_owned() as i32
+      "start" => self.start().to_owned(),
+      "end" => self.end().to_owned(),
+      "len" => self.len().to_owned()
     )
   }
 }
@@ -248,61 +256,61 @@ export type Look =
   | LookWordUnicodeNegateVariant
 
 export type LookStartVariant = {
-  '@type': 'struct'
+  '@type': 'enum'
   '@name': 'regex_syntax::hir:Look'
   '@variant': 'Start'
 }
 
 export type LookEndVariant = {
-  '@type': 'struct'
+  '@type': 'enum'
   '@name': 'regex_syntax::hir:Look'
   '@variant': 'End'
 }
 
 export type LookStartLFVariant = {
-  '@type': 'struct'
+  '@type': 'enum'
   '@name': 'regex_syntax::hir:Look'
   '@variant': 'StartLF'
 }
 
 export type LookEndLFVariant = {
-  '@type': 'struct'
+  '@type': 'enum'
   '@name': 'regex_syntax::hir:Look'
   '@variant': 'EndLF'
 }
 
 export type LookStartCRLFVariant = {
-  '@type': 'struct'
+  '@type': 'enum'
   '@name': 'regex_syntax::hir:Look'
   '@variant': 'StartCRLF'
 }
 
 export type LookEndCRLFVariant = {
-  '@type': 'struct'
+  '@type': 'enum'
   '@name': 'regex_syntax::hir:Look'
   '@variant': 'EndCRLF'
 }
 
 export type LookWordAsciiVariant = {
-  '@type': 'struct'
+  '@type': 'enum'
   '@name': 'regex_syntax::hir:Look'
   '@variant': 'WordAscii'
 }
 
 export type LookWordAsciiNegateVariant = {
-  '@type': 'struct'
+  '@type': 'enum'
   '@name': 'regex_syntax::hir:Look'
   '@variant': 'WordAsciiNegate'
 }
 
 export type LookWordUnicodeVariant = {
-  '@type': 'struct'
+  '@type': 'enum'
   '@name': 'regex_syntax::hir:Look'
   '@variant': 'WordUnicode'
 }
 
 export type LookWordUnicodeNegateVariant = {
-  '@type': 'struct'
+  '@type': 'enum'
   '@name': 'regex_syntax::hir:Look'
   '@variant': 'WordUnicodeNegate'
 }
@@ -346,10 +354,9 @@ impl ToJs for hir::Repetition {
       "@type" => "struct",
       "@name" => "regex_syntax::hir::Repetition",
       "min" => self.min.to_js(),
-      "max" => self.min.to_js(),
+      "max" => self.max.to_js(),
       "greedy" => self.greedy,
-      "kind" => self.sub.to_js(),
-      "hir" => self.sub.to_js()
+      "sub" => self.sub.to_js()
     )
   }
 }

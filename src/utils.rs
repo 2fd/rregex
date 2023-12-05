@@ -29,16 +29,19 @@ pub fn result<V: ToJs, E: ToString>(r: Result<V, E>) -> JsValue {
   }
 }
 
-impl<V: ToJs> ToJs for Option<V> {
+impl ToJs for u8 {
   fn to_js(&self) -> JsValue {
-    match self {
-      Some(v) => v.to_js(),
-      None => JsValue::UNDEFINED,
-    }
+      JsValue::from_f64(self.to_owned() as f64)
   }
 }
 
 impl ToJs for u32 {
+  fn to_js(&self) -> JsValue {
+      JsValue::from_f64(self.to_owned() as f64)
+  }
+}
+
+impl ToJs for usize {
   fn to_js(&self) -> JsValue {
       JsValue::from_f64(self.to_owned() as f64)
   }
@@ -56,21 +59,11 @@ impl ToJs for String {
   }
 }
 
-impl ToJs for Vec<JsValue> {
+impl<T: ToJs> ToJs for [T] {
   fn to_js(&self) -> JsValue {
     let arr: Array = Array::new();
     for item in self {
-      arr.push(&item);
-    }
-    JsValue::from(arr)
-  }
-}
-
-impl ToJs for Vec<usize> {
-  fn to_js(&self) -> JsValue {
-    let arr: Array = Array::new();
-    for item in self {
-      arr.push(&JsValue::from(item.to_owned() as f64));
+      arr.push(&item.to_js());
     }
     JsValue::from(arr)
   }
@@ -83,5 +76,14 @@ impl<T: ToJs> ToJs for Vec<T> {
       arr.push(&item.to_js());
     }
     JsValue::from(arr)
+  }
+}
+
+impl<V: ToJs> ToJs for Option<V> {
+  fn to_js(&self) -> JsValue {
+    match self {
+      Some(v) => v.to_js(),
+      None => JsValue::UNDEFINED,
+    }
   }
 }
