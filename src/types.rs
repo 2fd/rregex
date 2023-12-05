@@ -26,10 +26,9 @@ export type HirKind =
   | HirKindEmptyVariant
   | HirKindLiteralVariant
   | HirKindClassVariant
-  | HirKindAnchorVariant
-  | HirKindWordBoundaryVariant
+  | HirKindLookVariant
   | HirKindRepetitionVariant
-  | HirKindGroupVariant
+  | HirKindCaptureVariant
   | HirKindConcatVariant
   | HirKindAlternationVariant
 
@@ -53,18 +52,11 @@ export type HirKindClassVariant = {
   '@values': [Class]
 }
 
-export type HirKindAnchorVariant = {
+export type HirKindLookVariant = {
   '@type': 'struct'
   '@name': 'regex_syntax::hir::HirKind'
-  '@variant': 'Anchor'
-  '@values': [Anchor]
-}
-
-export type HirKindWordBoundaryVariant = {
-  '@type': 'struct'
-  '@name': 'regex_syntax::hir::HirKind'
-  '@variant': 'WordBoundary'
-  '@values': [WordBoundary]
+  '@variant': 'Look'
+  '@values': [Look]
 }
 
 export type HirKindRepetitionVariant = {
@@ -74,11 +66,11 @@ export type HirKindRepetitionVariant = {
   '@values': [Repetition]
 }
 
-export type HirKindGroupVariant = {
+export type HirKindCaptureVariant = {
   '@type': 'struct'
   '@name': 'regex_syntax::hir::HirKind'
-  '@variant': 'Group'
-  '@values': [Group]
+  '@variant': 'Capture'
+  '@values': [Capture]
 }
 
 export type HirKindConcatVariant = {
@@ -103,10 +95,9 @@ impl ToJs for hir::HirKind {
       hir::HirKind::Empty => set!(&current, "@variant" => "Empty"),
       hir::HirKind::Literal(l) => set!(&current, "@variant" => "Literal", "@values" => JsArray!(l.to_js())),
       hir::HirKind::Class(c) => set!(&current, "@variant" => "Class", "@values" => JsArray!(c.to_js())),
-      hir::HirKind::Anchor(a) => set!(&current, "@variant" => "Anchor", "@values" => JsArray!(a.to_js())),
-      hir::HirKind::WordBoundary(w) => set!(&current, "@variant" => "WordBoundary", "@values" => JsArray!(w.to_js())),
+      hir::HirKind::Look(a) => set!(&current, "@variant" => "Look", "@values" => JsArray!(a.to_js())),
       hir::HirKind::Repetition(r) => set!(&current, "@variant" => "Repetition", "@values" => JsArray!(r.to_js())),
-      hir::HirKind::Group(g) => set!(&current, "@variant" => "Group", "@values" => JsArray!(g.to_js())),
+      hir::HirKind::Capture(g) => set!(&current, "@variant" => "Capture", "@values" => JsArray!(g.to_js())),
       hir::HirKind::Concat(c) => set!(&current, "@variant" => "Concat", "@values" => JsArray!(c.to_js())),
       hir::HirKind::Alternation(c) => set!(&current, "@variant" => "Alternation", "@values" => JsArray!(c.to_js())),
     };
