@@ -2,12 +2,12 @@
 name = "rregex"
 description = "Rust Regex binding for Javascript"
 license = "MIT"
-version = "0.1.0"
+version = "1.8.0"
 authors = [ "Fede Ramirez <i@2fd.me>" ]
 publish = false
 readme = "README.md"
 edition = "2018"
-homepage = "https://2fd.github.io/rregex"
+homepage = "http://rregex.dev"
 repository = "https://github.com/2fd/rregex"
 
 [dependencies]
