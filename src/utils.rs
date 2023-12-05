@@ -44,6 +44,12 @@ impl ToJs for u32 {
   }
 }
 
+impl ToJs for Box<str> {
+  fn to_js(&self) -> JsValue {
+    JsValue::from_str(self)
+  }
+}
+
 impl ToJs for String {
   fn to_js(&self) -> JsValue {
     JsValue::from_str(self)

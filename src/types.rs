@@ -94,9 +94,9 @@ impl ToJs for hir::HirKind {
       hir::HirKind::Empty => set!(&current, "@variant" => "Empty"),
       hir::HirKind::Literal(l) => set!(&current, "@variant" => "Literal", "@values" => JsArray!(l.to_js())),
       hir::HirKind::Class(c) => set!(&current, "@variant" => "Class", "@values" => JsArray!(c.to_js())),
-      hir::HirKind::Look(a) => set!(&current, "@variant" => "Look", "@values" => JsArray!(a.to_js())),
+      hir::HirKind::Look(l) => set!(&current, "@variant" => "Look", "@values" => JsArray!(l.to_js())),
       hir::HirKind::Repetition(r) => set!(&current, "@variant" => "Repetition", "@values" => JsArray!(r.to_js())),
-      hir::HirKind::Capture(g) => set!(&current, "@variant" => "Capture", "@values" => JsArray!(g.to_js())),
+      hir::HirKind::Capture(c) => set!(&current, "@variant" => "Capture", "@values" => JsArray!(c.to_js())),
       hir::HirKind::Concat(c) => set!(&current, "@variant" => "Concat", "@values" => JsArray!(c.to_js())),
       hir::HirKind::Alternation(c) => set!(&current, "@variant" => "Alternation", "@values" => JsArray!(c.to_js())),
     };
@@ -368,64 +368,25 @@ impl ToJs for hir::Repetition {
 }
 
 #[wasm_bindgen(typescript_custom_section)]
-const GROUP_TYPE: &'static str = r#"
-export type Group = {
+const CAPTURE_TYPE: &'static str = r#"
+export type Capture = {
   '@type': 'struct'
-  '@name': 'regex_syntax::hir::Group'
-  kind: GroupKind
-  hir: Hir
+  '@name': 'regex_syntax::hir::Capture'
+  index: number
+  name?: String
+  sub: Hir
 }
 "#;
 
-impl ToJs for hir::Group {
+impl ToJs for hir::Capture {
   fn to_js(&self) -> JsValue {
     JsObject!(
       "@type" => "struct",
-      "@name" => "regex_syntax::hir::Group",
-      "kind" => self.kind.to_js(),
-      "hir" => self.hir.to_js()
+      "@name" => "regex_syntax::hir::Capture",
+      "index" => self.index.to_js(),
+      "name" => self.name.to_js(),
+      "sub" => self.sub.to_js()
     )
-  }
-}
-
-#[wasm_bindgen(typescript_custom_section)]
-const GROUPKIND_TYPE: &'static str = r#"
-export type GroupKind =
-  | GroupKindCaptureIndexVariant
-  | GroupKindCaptureNameVariant
-  | GroupKindNonCapturingVariant
-
-export type GroupKindCaptureIndexVariant = {
-  '@type': 'struct'
-  '@name': 'regex_syntax::hir::GroupKind'
-  '@variant': 'CaptureIndex'
-  index: number
-}
-
-export type GroupKindCaptureNameVariant = {
-  '@type': 'struct'
-  '@name': 'regex_syntax::hir::GroupKind'
-  '@variant': 'CaptureName'
-  index: number
-  name: string
-}
-
-export type GroupKindNonCapturingVariant = {
-  '@type': 'struct'
-  '@name': 'regex_syntax::hir::GroupKind'
-  '@variant': 'NonCapturing'
-}
-"#;
-
-impl ToJs for hir::GroupKind {
-  fn to_js(&self) -> JsValue {
-    let current = JsObject!("@type" => "enum", "@name" => "regex_syntax::hir::GroupKind");
-    match self {
-      hir::GroupKind::CaptureIndex(index) => set!(&current, "@variant" => "CaptureIndex", "index" => index.to_owned() as f64),
-      hir::GroupKind::CaptureName { name, index } => set!(&current, "@variant" => "CaptureName", "index" => index.to_owned() as f64, "name" => name.to_owned()),
-      hir::GroupKind::NonCapturing => set!(&current, "@variant" => "NonCapturing"),
-    };
-    current
   }
 }
 
