@@ -106,33 +106,20 @@ impl ToJs for hir::HirKind {
 
 #[wasm_bindgen(typescript_custom_section)]
 const LITERAL_TYPE: &'static str = r#"
-export type Literal =
-  | LiteralUnicodeVariant
-  | LiteralByteVariant
-
-export type LiteralUnicodeVariant = {
+export type Literal = {
   '@type': 'struct'
   '@name': 'regex_syntax::hir::Literal'
-  '@variant': 'Unicode'
-  '@values': [string]
-}
-
-export type LiteralByteVariant = {
-  '@type': 'struct'
-  '@name': 'regex_syntax::hir::Literal'
-  '@variant': 'Byte'
-  '@values': [number]
+  '@values': [number[]]
 }
 "#;
 
 impl ToJs for hir::Literal {
   fn to_js(&self) -> JsValue {
-    let current = JsObject!("@type" => "enum", "@name" => "regex_syntax::hir::Literal");
-    match self {
-      hir::Literal::Unicode(unicode) => set!(&current, "@variant" => "Unicode", "@values" => JsArray!(unicode.to_string())),
-      hir::Literal::Byte(byte) => set!(&current,  "@variant" => "Byte", "@values" => JsArray!(byte.to_owned() as i32)),
-    };
-    current
+    JsObject!(
+      "@type" => "struct",
+      "@name" => "regex_syntax::hir::Literal",
+      "@values" => self.0.to_js()
+    )
   }
 }
 
