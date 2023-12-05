@@ -343,52 +343,6 @@ impl ToJs for hir::Look {
 }
 
 #[wasm_bindgen(typescript_custom_section)]
-const WORDBOUNDARY_TYPE: &'static str = r#"
-export type WordBoundary =
-  | WordBoundaryAsciiVariant
-  | WordBoundaryAsciiNegateVariant
-  | WordBoundaryUnicodeVariant
-  | WordBoundaryUnicodeNegateVariant
-
-export type WordBoundaryAsciiVariant = {
-  '@type': 'struct'
-  '@name': 'regex_syntax::hir::WordBoundary'
-  '@variant': 'Ascii'
-}
-
-export type WordBoundaryAsciiNegateVariant = {
-  '@type': 'struct'
-  '@name': 'regex_syntax::hir::WordBoundary'
-  '@variant': 'AsciiNegate'
-}
-
-export type WordBoundaryUnicodeVariant = {
-  '@type': 'struct'
-  '@name': 'regex_syntax::hir::WordBoundary'
-  '@variant': 'Unicode'
-}
-
-export type WordBoundaryUnicodeNegateVariant = {
-  '@type': 'struct'
-  '@name': 'regex_syntax::hir::WordBoundary'
-  '@variant': 'UnicodeNegate'
-}
-"#;
-
-impl ToJs for hir::WordBoundary {
-  fn to_js(&self) -> JsValue {
-    let current = JsObject!("@type" => "enum", "@name" => "regex_syntax::hir::WordBoundary");
-    match self {
-      hir::WordBoundary::Ascii => set!(&current, "@variant" => "Ascii"),
-      hir::WordBoundary::AsciiNegate => set!(&current, "@variant" => "AsciiNegate"),
-      hir::WordBoundary::Unicode => set!(&current, "@variant" => "Unicode"),
-      hir::WordBoundary::UnicodeNegate => set!(&current, "@variant" => "UnicodeNegate"),
-    };
-    current
-  }
-}
-
-#[wasm_bindgen(typescript_custom_section)]
 const REPETITION_TYPE: &'static str = r#"
 export type Repetition = {
   '@type': 'struct'
