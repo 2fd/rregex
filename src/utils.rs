@@ -22,13 +22,6 @@ pub fn error<E: ToString>(e: E) -> JsValue {
   JsValue::from(error)
 }
 
-pub fn result<V: ToJs, E: ToString>(r: Result<V, E>) -> JsValue {
-  match r {
-    Ok(v) => v.to_js(),
-    Err(e) => error(e),
-  }
-}
-
 impl ToJs for u8 {
   fn to_js(&self) -> JsValue {
       JsValue::from_f64(self.to_owned() as f64)

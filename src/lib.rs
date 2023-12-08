@@ -4,7 +4,6 @@
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
-mod macros;
 mod utils;
 mod types;
 mod rregex;

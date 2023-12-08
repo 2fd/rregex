@@ -36,6 +36,7 @@ for t in lib/*.d.ts; do
     sed -i '.tmp' -e 's/split(text: string): any;/split(text: string): string[];/g' $t
     sed -i '.tmp' -e 's/splitn(text: string, limit: number): any;/splitn(text: string, limit: number): string[];/g' $t
     sed -i '.tmp' -e 's/syntax(): any;/syntax(): Hir;/g' $t
+    sed -i '.tmp' -e 's/matches(text: string): any[];/matches(text: string): number[];/g' $t
   else
     sed -i -e 's/find(text: string): any;/find(text: string): Match | undefined;/g' $t
     sed -i -e 's/findAt(text: string, start: number): any;/findAt(text: string, start: number): Match | undefined;/g' $t
@@ -44,6 +45,7 @@ for t in lib/*.d.ts; do
     sed -i -e 's/split(text: string): any;/split(text: string): string[];/g' $t
     sed -i -e 's/splitn(text: string, limit: number): any;/splitn(text: string, limit: number): string[];/g' $t
     sed -i -e 's/syntax(): any;/syntax(): Hir;/g' $t
+    sed -i -e 's/matches(text: string): any[];/matches(text: string): number[];/g' $t
   fi
 done
 
