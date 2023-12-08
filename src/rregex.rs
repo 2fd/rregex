@@ -145,37 +145,39 @@ impl RRegex {
         serde_wasm_bindgen::to_value(&matches)
     }
 
-    // Return an array with all capture names
-    // @see https://docs.rs/regex/1.8.4/regex/struct.Regex.html#method.capture_names
-    // #[wasm_bindgen(js_name = captureNames)]
-    // pub fn capture_names(&self) -> JsValue {
-    //     let names: &Vec<String> = &self
-    //         .regex
-    //         .capture_names()
-    //         .filter_map(|capture| capture.map(|name| name.to_owned()))
-    //         .collect();
+    #[wasm_bindgen(js_name = captureLength)]
+    pub fn captures_len(&self) -> usize {
+        self.regex.captures_len()
+    }
 
-    //     names.to_js()
-    // }
+    #[wasm_bindgen(skip_jsdoc, js_name = captureNames)]
+    pub fn capture_names(&self) -> Vec<JsValue> {
+        self.regex
+            .capture_names()
+            .filter_map(|item| item.map(JsValue::from))
+            .collect()
+    }
 
-    // pub fn capture_len(&self) -> JsValue {
-    //     let len = &self.regex.captures_len();
-    //     len.to_js()
-    // }
+    #[wasm_bindgen(skip_jsdoc)]
+    pub fn captures(&self, text: &str) -> Result<JsValue> {
+        if let Some(captures) = self.regex.captures(text) {
+            Match::captures(captures, self.regex.capture_names())
+        } else {
+            Ok(JsValue::undefined())
+        }
+    }
 
-    // pub fn capture_at(&self, text: &str, offset: usize) -> JsValue {
-    //     if text.len() > offset {
-    //         if let Some(capture) = &self.regex.captures_at(text, offset) {
-    //           js_sys::Map::unchecked_from_js(val)
-    //           let len = capture.len();
-    //           return JsArray!(
-    //             &capture[""]
-    //           )
-    //         };
-    //     };
+    #[wasm_bindgen(skip_jsdoc, js_name = capturesAll)]
+    pub fn captures_all(&self, text: &str) -> Result<JsValue> {
+        let names = self.regex.capture_names();
+        let result = js_sys::Array::new();
+        for captures in self.regex.captures_iter(text) {
+            let c = Match::captures(captures, names.clone())?;
+            result.push(&c);
+        }
 
-    //     JsValue::UNDEFINED
-    // }
+        Ok(JsValue::from(result))
+    }
 
     /// Replaces the leftmost-first match with the replacement provided.
     /// The replacement can be a regular string (where `$N` and `$name` are
@@ -372,7 +374,6 @@ impl RRegex {
     pub fn shortest_match(&self, text: &str) -> Option<usize> {
         self.regex.shortest_match(text)
     }
-
 
     /// Returns the same as `shortest_match`, but starts the search at the
     /// given offset.

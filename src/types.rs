@@ -1,31 +1,24 @@
-use std::convert::TryFrom;
 use regex_syntax::hir;
 use serde::ser::SerializeStruct;
 use serde::Serialize;
+use std::convert::TryFrom;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen(typescript_custom_section)]
-const MATCH_TYPE: &'static str = r#"/** Represents a single match of a regex in a haystack. */
+const MATCH_TYPE: &'static str = r#"/**
+ * Represents a single match of a regex in a haystack.
+ */
 export type Match = {
   start: number
   end: number
   value: string
 }"#;
 
-#[derive(Serialize)]
-pub struct Match<'t> {
-    value: &'t str,
-    start: usize,
-    end: usize,
-}
+pub struct Match<'t>(regex::Match<'t>);
 
 impl<'t> From<regex::Match<'t>> for Match<'t> {
     fn from(value: regex::Match<'t>) -> Self {
-        Match {
-            start: value.start(),
-            end: value.end(),
-            value: value.as_str(),
-        }
+        Match(value)
     }
 }
 
@@ -33,6 +26,63 @@ impl<'t> TryFrom<Match<'t>> for JsValue {
     type Error = serde_wasm_bindgen::Error;
     fn try_from(value: Match<'t>) -> Result<Self, Self::Error> {
         serde_wasm_bindgen::to_value(&value)
+    }
+}
+
+impl<'t> Serialize for Match<'t> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let mut hir = serializer.serialize_struct("Match", 3)?;
+        hir.serialize_field("start", &self.0.start())?;
+        hir.serialize_field("end", &self.0.end())?;
+        hir.serialize_field("value", &self.0.as_str())?;
+        hir.end()
+    }
+}
+
+#[wasm_bindgen(typescript_custom_section)]
+const Captures_TYPE: &'static str = r#"/**
+ * Captures represents a group of captured strings for a single match.
+ *
+ * The 0th capture always corresponds to the entire match. Each subsequent index
+ * corresponds to the next capture group in the regex. If a capture group is named,
+ * then the matched string is also available via the name property. (Note that the
+ * 0th capture is always unnamed and so must be accessed with the get property.)
+ *
+ * Positions returned from a capture group are always byte indices.
+ */
+export type Captures = {
+  get: Match[]
+  name: Record<string, Match>
+}"#;
+
+impl<'t> Match<'t> {
+    pub fn captures(
+        captures: regex::Captures,
+        captures_names: regex::CaptureNames,
+    ) -> Result<JsValue, serde_wasm_bindgen::Error> {
+        let matches = js_sys::Array::new();
+        let names = js_sys::Object::new();
+        for (index, name) in captures_names.enumerate() {
+            if let Some(m) = captures.get(index) {
+                let v = JsValue::try_from(Match::from(m))?;
+                matches.push(&v);
+            }
+
+            if let Some(n) = name {
+                if let Some(m) = captures.name(n) {
+                    let v = JsValue::try_from(Match::from(m))?;
+                    js_sys::Reflect::set(&names, &JsValue::from(n), &v)?;
+                }
+            }
+        }
+
+        let result = js_sys::Object::new();
+        js_sys::Reflect::set(&result, &JsValue::from("get"), &matches)?;
+        js_sys::Reflect::set(&result, &JsValue::from("name"), &names)?;
+        Ok(JsValue::from(result))
     }
 }
 
@@ -45,7 +95,9 @@ impl<T> From<T> for Hir<T> {
 }
 
 impl<T> TryFrom<Hir<T>> for JsValue
-    where Hir<T> : Serialize {
+where
+    Hir<T>: Serialize,
+{
     type Error = serde_wasm_bindgen::Error;
     fn try_from(value: Hir<T>) -> Result<Self, Self::Error> {
         serde_wasm_bindgen::to_value(&value)
@@ -192,15 +244,16 @@ export type HirKindAlternationVariant = {
 
 impl Serialize for Hir<&hir::HirKind> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: serde::Serializer {
+    where
+        S: serde::Serializer,
+    {
         let mut hir = serializer.serialize_struct("HirKind", 4)?;
         hir.serialize_field("@type", "enum")?;
         hir.serialize_field("@name", "regex_syntax::hir::HirKind")?;
         match &self.0 {
             hir::HirKind::Empty => {
                 hir.serialize_field("@variant", "Empty")?;
-            },
+            }
             hir::HirKind::Literal(l) => {
                 hir.serialize_field("@variant", "Literal")?;
                 hir.serialize_field("@values", &vec![Hir::from(l)])?;
@@ -253,16 +306,18 @@ export type Literal = {
 
 impl Serialize for Hir<&Box<[u8]>> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: serde::Serializer {
+    where
+        S: serde::Serializer,
+    {
         serializer.serialize_bytes(self.0.as_ref())
     }
 }
 
 impl Serialize for Hir<&hir::Literal> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: serde::Serializer {
+    where
+        S: serde::Serializer,
+    {
         // let mut bytes = serializer.serialize_bytes(&self.0.0)?;
 
         // let mut values = serializer.serialize_seq(Some(1))?;
@@ -271,7 +326,7 @@ impl Serialize for Hir<&hir::Literal> {
         let mut hir = serializer.serialize_struct("Literal", 3)?;
         hir.serialize_field("@type", "struct")?;
         hir.serialize_field("@name", "regex_syntax::hir::Literal")?;
-        hir.serialize_field("@values", &vec![&Hir::from(&self.0.0)])?;
+        hir.serialize_field("@values", &vec![&Hir::from(&self.0 .0)])?;
         hir.end()
     }
 }
@@ -319,8 +374,9 @@ export type ClassByteVariant = {
 
 impl Serialize for Hir<&hir::Class> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: serde::Serializer {
+    where
+        S: serde::Serializer,
+    {
         let mut hir = serializer.serialize_struct("Class", 4)?;
         hir.serialize_field("@type", "enum")?;
         hir.serialize_field("@name", "regex_syntax::hir::Class")?;
@@ -352,13 +408,11 @@ export type ClassUnicode = {
 
 impl Serialize for Hir<&hir::ClassUnicode> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: serde::Serializer {
-
-        let ranges: &Vec<Hir<&hir::ClassUnicodeRange>> = &self.0.ranges()
-            .iter()
-            .map(Hir::from)
-            .collect();
+    where
+        S: serde::Serializer,
+    {
+        let ranges: &Vec<Hir<&hir::ClassUnicodeRange>> =
+            &self.0.ranges().iter().map(Hir::from).collect();
 
         let mut hir = serializer.serialize_struct("ClassUnicode", 3)?;
         hir.serialize_field("@type", "struct")?;
@@ -401,8 +455,9 @@ export type ClassUnicodeRange = {
 
 impl Serialize for Hir<&hir::ClassUnicodeRange> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: serde::Serializer {
+    where
+        S: serde::Serializer,
+    {
         let mut hir = serializer.serialize_struct("ClassUnicodeRange", 5)?;
         hir.serialize_field("@type", "struct")?;
         hir.serialize_field("@name", "regex_syntax::hir::ClassUnicodeRange")?;
@@ -428,13 +483,11 @@ export type ClassBytes = {
 
 impl Serialize for Hir<&hir::ClassBytes> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: serde::Serializer {
-
-        let ranges: &Vec<Hir<&hir::ClassBytesRange>> = &self.0.ranges()
-            .iter()
-            .map(Hir::from)
-            .collect();
+    where
+        S: serde::Serializer,
+    {
+        let ranges: &Vec<Hir<&hir::ClassBytesRange>> =
+            &self.0.ranges().iter().map(Hir::from).collect();
 
         let mut hir = serializer.serialize_struct("ClassBytes", 3)?;
         hir.serialize_field("@type", "struct")?;
@@ -477,8 +530,9 @@ export type ClassBytesRange = {
 
 impl Serialize for Hir<&hir::ClassBytesRange> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: serde::Serializer {
+    where
+        S: serde::Serializer,
+    {
         let mut hir = serializer.serialize_struct("ClassBytesRange", 5)?;
         hir.serialize_field("@type", "struct")?;
         hir.serialize_field("@name", "regex_syntax::hir::ClassBytesRange")?;
@@ -614,42 +668,43 @@ export type LookWordUnicodeNegateVariant = {
 
 impl Serialize for Hir<&hir::Look> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: serde::Serializer {
+    where
+        S: serde::Serializer,
+    {
         let mut hir = serializer.serialize_struct("Look", 3)?;
         hir.serialize_field("@type", "enum")?;
         hir.serialize_field("@name", "regex_syntax::hir::Look")?;
         match self.0 {
             hir::Look::Start => {
                 hir.serialize_field("@variant", "Start")?;
-            },
+            }
             hir::Look::End => {
                 hir.serialize_field("@variant", "End")?;
-            },
+            }
             hir::Look::StartLF => {
                 hir.serialize_field("@variant", "StartLF")?;
-            },
+            }
             hir::Look::EndLF => {
                 hir.serialize_field("@variant", "EndLF")?;
-            },
+            }
             hir::Look::StartCRLF => {
                 hir.serialize_field("@variant", "StartCRLF")?;
-            },
+            }
             hir::Look::EndCRLF => {
                 hir.serialize_field("@variant", "EndCRLF")?;
-            },
+            }
             hir::Look::WordAscii => {
                 hir.serialize_field("@variant", "WordAscii")?;
-            },
+            }
             hir::Look::WordAsciiNegate => {
                 hir.serialize_field("@variant", "WordAsciiNegate")?;
-            },
+            }
             hir::Look::WordUnicode => {
                 hir.serialize_field("@variant", "WordUnicode")?;
-            },
+            }
             hir::Look::WordUnicodeNegate => {
                 hir.serialize_field("@variant", "WordUnicodeNegate")?;
-            },
+            }
         };
         hir.end()
     }
@@ -704,8 +759,9 @@ export type Repetition = {
 
 impl Serialize for Hir<&hir::Repetition> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: serde::Serializer {
+    where
+        S: serde::Serializer,
+    {
         let mut hir = serializer.serialize_struct("Repetition", 6)?;
         hir.serialize_field("@type", "struct")?;
         hir.serialize_field("@name", "regex_syntax::hir::Repetition")?;
@@ -744,8 +800,9 @@ export type Capture = {
 
 impl Serialize for Hir<&hir::Capture> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: serde::Serializer {
+    where
+        S: serde::Serializer,
+    {
         let mut hir = serializer.serialize_struct("Capture", 5)?;
         hir.serialize_field("@type", "struct")?;
         hir.serialize_field("@name", "regex_syntax::hir::Capture")?;

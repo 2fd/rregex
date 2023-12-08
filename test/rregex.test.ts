@@ -53,17 +53,17 @@ describe(`RRegex`, () => {
     expect(regex.find('abc')).toEqual({ value: 'a', start: 0, end: 1 })
     expect(regex.findAt('abc', 1)).toBeUndefined()
     expect(regex.findAt('abc', 100)).toBeUndefined()
-    // expect(regex.find('def')).toBeUndefined()
+    expect(regex.find('def')).toBeUndefined()
 
-    // const text = 'I categorically deny having triskaidekaphobia.'
-    // const re = new RRegex('\\b\\w{13}\\b')
-    // expect(re.findAt(text, 1)).toEqual({
-    //   value: 'categorically',
-    //   start: 2,
-    //   end: 15,
-    // })
+    const text = 'I categorically deny having triskaidekaphobia.'
+    const re = new RRegex('\\b\\w{13}\\b')
+    expect(re.findAt(text, 1)).toEqual({
+      value: 'categorically',
+      start: 2,
+      end: 15,
+    })
 
-    // expect(re.findAt(text, 5)).toEqual(undefined)
+    expect(re.findAt(text, 5)).toEqual(undefined)
   })
 
   test(`findAll`, () => {
@@ -97,6 +97,98 @@ describe(`RRegex`, () => {
         "end": 58,
         "start": 45,
         "value": "reprehensible",
+      },
+    ])
+  })
+
+  test(`capturelength`, () => {
+    const regex = new RRegex('(?P<y>\\d{4})-(?P<m>\\d{2})-(?P<d>\\d{2})')
+    expect(regex.captureLength()).toEqual(4)
+  })
+
+  test(`captureNames`, () => {
+    const regex = new RRegex('(?P<y>\\d{4})-(?P<m>\\d{2})-(?P<d>\\d{2})')
+    expect(regex.captureNames()).toEqual([
+      "y",
+      "m",
+      "d",
+    ])
+  })
+
+  test(`captures`, () => {
+    const regex = new RRegex('(?P<y>\\d{4})-(?P<m>\\d{2})-(?P<d>\\d{2})')
+    expect(regex.captures('')).toEqual(undefined)
+    expect(regex.captures('2012-03-14')).toEqual({
+      get: [
+        { value: '2012-03-14', start: 0, end: 10 },
+        { value: '2012', start: 0, end: 4 },
+        { value: '03', start: 5, end: 7 },
+        { value: '14', start: 8, end: 10 },
+      ],
+      name: {
+        y: { value: '2012', start: 0, end: 4 },
+        m: { value: '03', start: 5, end: 7 },
+        d: { value: '14', start: 8, end: 10 },
+      }
+    })
+  })
+
+  test(`capturesAll`, () => {
+    const regex = new RRegex('(?P<y>\\d{4})-(?P<m>\\d{2})-(?P<d>\\d{2})')
+    expect(regex.capturesAll('')).toEqual([])
+    expect(regex.capturesAll('2012-03-14')).toEqual([{
+      get: [
+        { value: '2012-03-14', start: 0, end: 10 },
+        { value: '2012', start: 0, end: 4 },
+        { value: '03', start: 5, end: 7 },
+        { value: '14', start: 8, end: 10 },
+      ],
+      name: {
+        y: { value: '2012', start: 0, end: 4 },
+        m: { value: '03', start: 5, end: 7 },
+        d: { value: '14', start: 8, end: 10 },
+      }
+    }])
+
+    expect(regex.capturesAll('2012-03-14, 2013-01-01 and 2014-07-05')).toEqual([
+      {
+        get: [
+          { value: '2012-03-14', start: 0, end: 10 },
+          { value: '2012', start: 0, end: 4 },
+          { value: '03', start: 5, end: 7 },
+          { value: '14', start: 8, end: 10 },
+        ],
+        name: {
+          y: { value: '2012', start: 0, end: 4 },
+          m: { value: '03', start: 5, end: 7 },
+          d: { value: '14', start: 8, end: 10 },
+        }
+      },
+      {
+        get: [
+          { value: '2013-01-01', start: 12, end: 22 },
+          { value: '2013', start: 12, end: 16 },
+          { value: '01', start: 17, end: 19 },
+          { value: '01', start: 20, end: 22 },
+        ],
+        name: {
+          y: { value: '2013', start: 12, end: 16 },
+          m: { value: '01', start: 17, end: 19 },
+          d: { value: '01', start: 20, end: 22 },
+        }
+      },
+      {
+        get: [
+          { value: '2014-07-05', start: 27, end: 37 },
+          { value: '2014', start: 27, end: 31 },
+          { value: '07', start: 32, end: 34 },
+          { value: '05', start: 35, end: 37 },
+        ],
+        name: {
+          y: { value: '2014', start: 27, end: 31 },
+          m: { value: '07', start: 32, end: 34 },
+          d: { value: '05', start: 35, end: 37 },
+        }
       },
     ])
   })
