@@ -2,17 +2,17 @@
 name = "rregex"
 description = "Rust Regex binding for Javascript"
 license = "MIT"
-version = "0.1.0"
+version = "1.8.0"
 authors = [ "Fede Ramirez <i@2fd.me>" ]
 publish = false
 readme = "README.md"
 edition = "2018"
-homepage = "https://2fd.github.io/rregex"
+homepage = "http://rregex.dev"
 repository = "https://github.com/2fd/rregex"
 
 [dependencies]
-regex = "~1.7"
-regex-syntax = "0.6"
+regex = "~1.8"
+regex-syntax = "0.7"
 js-sys = "0.3"
 wasm-bindgen = "0.2"
 
@@ -28,6 +28,8 @@ console_error_panic_hook = { version = "0.1.1", optional = true }
 #
 # Unfortunately, `wee_alloc` requires nightly Rust when targeting wasm for now.
 wee_alloc = { version = "0.4.2", optional = true }
+serde = { version = "1.0", features = ["derive"] }
+serde-wasm-bindgen = "0.6.1"
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3.39"
