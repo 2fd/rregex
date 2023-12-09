@@ -102,8 +102,20 @@ describe(`RRegex`, () => {
   })
 
   test(`capturelength`, () => {
-    const regex = new RRegex('(?P<y>\\d{4})-(?P<m>\\d{2})-(?P<d>\\d{2})')
-    expect(regex.captureLength()).toEqual(4)
+    const re1 = new RRegex("(?P<y>\\d{4})-(?P<m>\\d{2})-(?P<d>\\d{2})")
+    expect(re1.captureLength()).toEqual(4)
+
+    const re2 = new RRegex("foo")
+    expect(re2.captureLength()).toEqual(1)
+
+    const re3 = new RRegex("(foo)")
+    expect(re3.captureLength()).toEqual(2)
+
+    const re4 = new RRegex("(?<a>.(?<b>.))(.)(?:.)(?<c>.)")
+    expect(re4.captureLength()).toEqual(5)
+
+    const re5 = new RRegex("[a&&b]")
+    expect(re5.captureLength()).toEqual(1)
   })
 
   test(`captureNames`, () => {

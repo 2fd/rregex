@@ -30,8 +30,8 @@ impl RRegexSet {
     /// Create a new regex set from an iterator of strings:
     ///
     /// ```typescript
-    /// const set = new RegexSet(["\\w+", "\\d+"]);
-    /// assert(set.is_match("foo"));
+    /// const set = new RegexSet(["\\w+", "\\d+"])
+    /// expect(set.is_match("foo")).toBe(true)
     /// ```
     #[wasm_bindgen(constructor)]
     pub fn new(list: &js_sys::Array) -> Result<RRegexSet> {
@@ -68,9 +68,9 @@ impl RRegexSet {
     /// Tests whether a set matches some text:
     ///
     /// ```typescript
-    /// const set = new RegexSet(["\\w+", "\\d+"]);
-    /// assert(set.is_match("foo"));
-    /// assert(!set.is_match("☃"));
+    /// const set = new RegexSet(["\\w+", "\\d+"])
+    /// expect(set.is_match("foo")).toBe(true)
+    /// expect(!set.is_match("☃")).toBe(false)
     /// ```
     ///
     /// @see https://docs.rs/regex/latest/regex/struct.RegexSet.html#method.is_match
@@ -107,9 +107,9 @@ impl RRegexSet {
     ///     "bar",
     ///     "barfoo",
     ///     "foobar",
-    /// ]);
-    /// const matches = set.matches("foobar");
-    /// assert.equal(matches, [0, 2, 3, 4, 6]);
+    /// ])
+    /// const matches = set.matches("foobar")
+    /// expect(matches).toBe([0, 2, 3, 4, 6])
     /// ```
     ///
     /// @see https://docs.rs/regex/latest/regex/struct.RegexSet.html#method.matches

@@ -41,8 +41,8 @@ impl RRegex {
     /// Unicode word characters:
     ///
     /// ```typescript
-    /// const text = "I categorically deny having triskaidekaphobia.";
-    /// assert(new RRegex("\\b\\w{13}\\b").is_match(text));
+    /// const text = "I categorically deny having triskaidekaphobia."
+    /// expect(new RRegex("\\b\\w{13}\\b").is_match(text)).toBe(true)
     /// ```
     ///
     /// @see https://docs.rs/regex/latest/regex/struct.Regex.html#method.is_match
@@ -84,10 +84,10 @@ impl RRegex {
     /// Unicode word characters:
     ///
     /// ```typescript
-    /// const text = "I categorically deny having triskaidekaphobia.";
-    /// const m = new Regex("\\b\\w{13}\\b").find(text);
-    /// assert.equal(m.start, 2);
-    /// assert.equal(m.end, 15);
+    /// const text = "I categorically deny having triskaidekaphobia."
+    /// const m = new Regex("\\b\\w{13}\\b").find(text)
+    /// expect(m.start).toBe(2)
+    /// expect(m.end).toBe(15)
     /// ```
     ///
     /// @see https://docs.rs/regex/latest/regex/struct.Regex.html#method.find
@@ -132,8 +132,8 @@ impl RRegex {
     /// word characters:
     ///
     /// ```typescript
-    /// const text = "Retroactively relinquishing remunerations is reprehensible.";
-    /// const matches = new Regex("\\b\\w{13}\\b").findAll(text);
+    /// const text = "Retroactively relinquishing remunerations is reprehensible."
+    /// const matches = new Regex("\\b\\w{13}\\b").findAll(text)
     /// ```
     ///
     /// @see https://docs.rs/regex/latest/regex/struct.Regex.html#method.find_iter
@@ -145,11 +145,42 @@ impl RRegex {
         serde_wasm_bindgen::to_value(&matches)
     }
 
+    /// Returns the number of captures.
+    ///
+    /// This includes all named and unnamed groups, including the implicit
+    /// unnamed group that is always present and corresponds to the entire match.
+    ///
+    /// Since the implicit unnamed group is always included in this length, the
+    /// length returned is guaranteed to be greater than zero.
+    ///
+    /// ## Example
+    ///
+    /// ```typescript
+    ///  const re1 = new RRegex("(?P<y>\\d{4})-(?P<m>\\d{2})-(?P<d>\\d{2})")
+    ///  expect(re1.captureLength()).toEqual(4)
+    ///
+    ///  const re2 = new RRegex("foo")
+    ///  expect(re2.captureLength()).toEqual(1)
+    ///
+    ///  const re3 = new RRegex("(foo)")
+    ///  expect(re3.captureLength()).toEqual(2)
+    ///
+    ///  const re4 = new RRegex("(?<a>.(?<b>.))(.)(?:.)(?<c>.)")
+    ///  expect(re4.captureLength()).toEqual(5)
+    ///
+    ///  const re5 = new RRegex("[a&&b]")
+    ///  expect(re5.captureLength()).toEqual(1)
+    /// ```
+    ///
+    /// @see https://docs.rs/regex/latest/regex/struct.Regex.html#method.captures_len
     #[wasm_bindgen(js_name = captureLength)]
     pub fn captures_len(&self) -> usize {
         self.regex.captures_len()
     }
 
+    /// Returns a list of the capture names in this regex.
+    ///
+    /// @see https://docs.rs/regex/latest/regex/struct.Regex.html#method.capture_names
     #[wasm_bindgen(skip_jsdoc, js_name = captureNames)]
     pub fn capture_names(&self) -> Vec<JsValue> {
         self.regex
@@ -158,6 +189,48 @@ impl RRegex {
             .collect()
     }
 
+
+    /// Returns the capture groups corresponding to the leftmost-first
+    /// match in `text`. Capture group `0` always corresponds to the entire
+    /// match. If no match is found, then `undefined` is returned.
+    ///
+    /// You should only use `captures` if you need access to the location of
+    /// capturing group matches. Otherwise, `find` is faster for discovering
+    /// the location of the overall match.
+    ///
+    /// # Examples
+    ///
+    /// Say you have some text with movie names and their release years,
+    /// like "'Citizen Kane' (1941)". It'd be nice if we could search for text
+    /// looking like that, while also extracting the movie name and its release
+    /// year separately.
+    ///
+    /// ```rust
+    /// const re = new Regex("'([^']+)'\\s+\\((\\d{4})\)")
+    /// const text = "Not my favorite movie: 'Citizen Kane' (1941)."
+    /// const caps = re.captures(text)
+    /// expect(caps.get[1].value).toBe("Citizen Kane")
+    /// expect(caps.get[2].value).toBe("1941")
+    /// expect(caps.get[0].value).toBe("'Citizen Kane' (1941)")
+    /// ```
+    ///
+    /// Note that the full match is at capture group `0`. Each subsequent
+    /// capture group is indexed by the order of its opening `(`.
+    ///
+    /// We can make this example a bit clearer by using *named* capture groups:
+    ///
+    /// ```rust
+    /// const re = new Regex("'(?P<title>[^']+)'\\s+\\((?P<year>\\d{4})\)")
+    /// const text = "Not my favorite movie: 'Citizen Kane' (1941)."
+    /// const caps = re.captures(text)
+    /// expect(caps.name["title"].value).toBe("Citizen Kane")
+    /// expect(caps.name["year"].value).toBe("1941")
+    /// expect(caps.get[0].value).toBe("'Citizen Kane' (1941)")
+    /// ```
+    ///
+    /// @see https://docs.rs/regex/latest/regex/struct.Regex.html#method.captures
+    /// @param {string} text - The string against which to match the regular expression
+    /// @returns {Captures|undefined}
     #[wasm_bindgen(skip_jsdoc)]
     pub fn captures(&self, text: &str) -> Result<JsValue> {
         if let Some(captures) = self.regex.captures(text) {
@@ -167,6 +240,33 @@ impl RRegex {
         }
     }
 
+    /// Returns a list with all the non-overlapping capture groups matched
+    /// in `text`. This is operationally the same as `findAll`, except it
+    /// returns information about capturing group matches.
+    ///
+    /// # Example
+    ///
+    /// We can use this to find all movie titles and their release years in
+    /// some text, where the movie is formatted like "'Title' (xxxx)":
+    ///
+    /// ```rust
+    /// const re = new Regex("'(?P<title>[^']+)'\\s+\\((?P<year>\\d{4})\\)")
+    /// const text = "'Citizen Kane' (1941), 'The Wizard of Oz' (1939), 'M' (1931)."
+    /// for caps of re.captures_iter(text) {
+    ///     console.log(
+    ///         "Movie:", caps.name["title"].value, ","
+    ///         "Released:", caps.name["year"].value
+    ///     );
+    /// }
+    /// // Output:
+    /// // Movie: Citizen Kane, Released: 1941
+    /// // Movie: The Wizard of Oz, Released: 1939
+    /// // Movie: M, Released: 1931
+    /// ```
+    ///
+    /// @see https://docs.rs/regex/latest/regex/struct.Regex.html#method.captures_iter
+    /// @param {string} text - The string against which to match the regular expression
+    /// @returns {Captures[]}
     #[wasm_bindgen(skip_jsdoc, js_name = capturesAll)]
     pub fn captures_all(&self, text: &str) -> Result<JsValue> {
         let names = self.regex.capture_names();
@@ -211,17 +311,17 @@ impl RRegex {
     /// In typical usage, this can just be a normal string:
     ///
     /// ```typescript
-    /// const re = new Regex("[^01]+");
-    /// assert.equal(re.replace("1078910", ""), "1010");
+    /// const re = new Regex("[^01]+")
+    /// expect(re.replace("1078910", "").toBe("1010")
     /// ```
     ///
     /// Here's the example using this expansion technique with named capture
     /// groups:
     ///
     /// ```typescript
-    /// const re = new Regex("(?P<last>[^,\\s]+),\\s+(?P<first>\\S+)");
-    /// const result = re.replace("Springsteen, Bruce", "$first $last");
-    /// assert.equal(result, "Bruce Springsteen");
+    /// const re = new Regex("(?P<last>[^,\\s]+),\\s+(?P<first>\\S+)")
+    /// const result = re.replace("Springsteen, Bruce", "$first $last")
+    /// expect(result).toBe("Bruce Springsteen")
     /// ```
     ///
     /// Note that using `$2` instead of `$first` or `$1` instead of `$last`
@@ -233,10 +333,9 @@ impl RRegex {
     /// underscore:
     ///
     /// ```typescript
-    /// const re = new Regex("(?P<first>\\w+)\\s+(?P<second>\\w+)");
-    /// const result = re.replace("deep fried", "${first}_$second");
-    /// assert.equal(result, "deep_fried");
-    /// # }
+    /// const re = new Regex("(?P<first>\\w+)\\s+(?P<second>\\w+)")
+    /// const result = re.replace("deep fried", "${first}_$second")
+    /// expect(result).toBe("deep_fried")
     /// ```
     ///
     /// Without the curly braces, the capture group name `first_` would be
@@ -297,9 +396,9 @@ impl RRegex {
     /// To split a string delimited by arbitrary amounts of spaces or tabs:
     ///
     /// ```typescript
-    /// const re = new Regex(r"[ \\t]+");
-    /// const fields = re.split("a b \t  c\td    e");
-    /// assert.equal!(fields, ["a", "b", "c", "d", "e"]);
+    /// const re = new Regex(r"[ \\t]+")
+    /// const fields = re.split("a b \t  c\td    e")
+    /// expect(fields).toEqual(["a", "b", "c", "d", "e"])
     /// ```
     ///
     /// @see https://docs.rs/regex/latest/regex/struct.Regex.html#method.split
@@ -323,10 +422,9 @@ impl RRegex {
     /// Get the first two words in some text:
     ///
     /// ```typescript
-    /// const re = new Regex(r"\\W+");
-    /// const fields = re.splitn("Hey! How are you?", 3);
-    /// assert.equal(fields, ["Hey", "How", "are you?"]);
-    /// # }
+    /// const re = new Regex(r"\\W+")
+    /// const fields = re.splitn("Hey! How are you?", 3)
+    /// expect(fields).toEqual(["Hey", "How", "are you?"])
     /// ```
     /// @see https://docs.rs/regex/latest/regex/struct.Regex.html#method.splitn
     /// @param {string} text - The string against which to match the regular expression
@@ -361,10 +459,9 @@ impl RRegex {
     /// `a`.
     ///
     /// ```typescript
-    /// const text = "aaaaa";
-    /// const = new Regex("a+").shortest_match(text);
-    /// assert.equal(pos, 1);
-    /// # }
+    /// const text = "aaaaa"
+    /// const = new Regex("a+").shortest_match(text)
+    /// expect(pos).toBe(1)
     /// ```
     ///
     /// @see https://docs.rs/regex/latest/regex/struct.Regex.html#method.shortest_match
