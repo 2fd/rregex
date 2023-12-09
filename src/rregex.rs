@@ -145,39 +145,6 @@ impl RRegex {
         serde_wasm_bindgen::to_value(&matches)
     }
 
-    /// Returns the number of captures.
-    ///
-    /// This includes all named and unnamed groups, including the implicit
-    /// unnamed group that is always present and corresponds to the entire match.
-    ///
-    /// Since the implicit unnamed group is always included in this length, the
-    /// length returned is guaranteed to be greater than zero.
-    ///
-    /// ## Example
-    ///
-    /// ```typescript
-    ///  const re1 = new RRegex("(?P<y>\\d{4})-(?P<m>\\d{2})-(?P<d>\\d{2})")
-    ///  expect(re1.captureLength()).toEqual(4)
-    ///
-    ///  const re2 = new RRegex("foo")
-    ///  expect(re2.captureLength()).toEqual(1)
-    ///
-    ///  const re3 = new RRegex("(foo)")
-    ///  expect(re3.captureLength()).toEqual(2)
-    ///
-    ///  const re4 = new RRegex("(?<a>.(?<b>.))(.)(?:.)(?<c>.)")
-    ///  expect(re4.captureLength()).toEqual(5)
-    ///
-    ///  const re5 = new RRegex("[a&&b]")
-    ///  expect(re5.captureLength()).toEqual(1)
-    /// ```
-    ///
-    /// @see https://docs.rs/regex/latest/regex/struct.Regex.html#method.captures_len
-    #[wasm_bindgen(js_name = captureLength)]
-    pub fn captures_len(&self) -> usize {
-        self.regex.captures_len()
-    }
-
     /// Returns a list of the capture names in this regex.
     ///
     /// @see https://docs.rs/regex/latest/regex/struct.Regex.html#method.capture_names
@@ -205,7 +172,7 @@ impl RRegex {
     /// looking like that, while also extracting the movie name and its release
     /// year separately.
     ///
-    /// ```rust
+    /// ```typescript
     /// const re = new Regex("'([^']+)'\\s+\\((\\d{4})\)")
     /// const text = "Not my favorite movie: 'Citizen Kane' (1941)."
     /// const caps = re.captures(text)
@@ -219,7 +186,7 @@ impl RRegex {
     ///
     /// We can make this example a bit clearer by using *named* capture groups:
     ///
-    /// ```rust
+    /// ```typescript
     /// const re = new Regex("'(?P<title>[^']+)'\\s+\\((?P<year>\\d{4})\)")
     /// const text = "Not my favorite movie: 'Citizen Kane' (1941)."
     /// const caps = re.captures(text)
@@ -249,7 +216,7 @@ impl RRegex {
     /// We can use this to find all movie titles and their release years in
     /// some text, where the movie is formatted like "'Title' (xxxx)":
     ///
-    /// ```rust
+    /// ```typescript
     /// const re = new Regex("'(?P<title>[^']+)'\\s+\\((?P<year>\\d{4})\\)")
     /// const text = "'Citizen Kane' (1941), 'The Wizard of Oz' (1939), 'M' (1931)."
     /// for caps of re.captures_iter(text) {
@@ -277,6 +244,39 @@ impl RRegex {
         }
 
         Ok(JsValue::from(result))
+    }
+
+    /// Returns the number of captures.
+    ///
+    /// This includes all named and unnamed groups, including the implicit
+    /// unnamed group that is always present and corresponds to the entire match.
+    ///
+    /// Since the implicit unnamed group is always included in this length, the
+    /// length returned is guaranteed to be greater than zero.
+    ///
+    /// ## Example
+    ///
+    /// ```typescript
+    ///  const re1 = new RRegex("(?P<y>\\d{4})-(?P<m>\\d{2})-(?P<d>\\d{2})")
+    ///  expect(re1.capturesLength()).toEqual(4)
+    ///
+    ///  const re2 = new RRegex("foo")
+    ///  expect(re2.capturesLength()).toEqual(1)
+    ///
+    ///  const re3 = new RRegex("(foo)")
+    ///  expect(re3.capturesLength()).toEqual(2)
+    ///
+    ///  const re4 = new RRegex("(?<a>.(?<b>.))(.)(?:.)(?<c>.)")
+    ///  expect(re4.capturesLength()).toEqual(5)
+    ///
+    ///  const re5 = new RRegex("[a&&b]")
+    ///  expect(re5.capturesLength()).toEqual(1)
+    /// ```
+    ///
+    /// @see https://docs.rs/regex/latest/regex/struct.Regex.html#method.captures_len
+    #[wasm_bindgen(js_name = capturesLength)]
+    pub fn captures_len(&self) -> usize {
+        self.regex.captures_len()
     }
 
     /// Replaces the leftmost-first match with the replacement provided.
