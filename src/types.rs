@@ -560,6 +560,14 @@ export type Look =
   | LookWordAsciiNegateVariant
   | LookWordUnicodeVariant
   | LookWordUnicodeNegateVariant
+  | LookWordStartAsciiVariant
+  | LookWordEndAsciiVariant
+  | LookWordStartUnicodeVariant
+  | LookWordEndUnicodeVariant
+  | LookWordStartHalfAsciiVariant
+  | LookWordEndHalfAsciiVariant
+  | LookWordStartHalfUnicodeVariant
+  | LookWordEndHalfUnicodeVariant
 
 /**
  * Match the beginning of text. Specifically, this matches at the starting
@@ -664,6 +672,95 @@ export type LookWordUnicodeNegateVariant = {
   '@type': 'enum'
   '@name': 'regex_syntax::hir:Look'
   '@variant': 'WordUnicodeNegate'
+
+
+/**
+ * Match the start of an ASCII-only word boundary. That is, this matches a
+ * position at either the beginning of the haystack or where the previous
+ * character is not a word character and the following character is a word
+ * character.
+ */
+export type LookWordStartAsciiVariant = {
+  '@type': 'enum'
+  '@name': 'regex_syntax::hir:Look'
+  '@variant': 'WordStartAscii'
+}
+
+/**
+ * Match the end of an ASCII-only word boundary. That is, this matches a
+ * position at either the end of the haystack orwhere the previous character is
+ * a word character and the following character is not a word character.
+ */
+export type LookWordEndAsciiVariant = {
+  '@type': 'enum'
+  '@name': 'regex_syntax::hir:Look'
+  '@variant': 'WordEndAscii'
+}
+
+/**
+ * Match the start of a Unicode word boundary. That is, this matches a position
+ * at either the beginning of the haystack or where the previous character is
+ * not a word character and the following character is a word character.
+ */
+export type LookWordStartUnicodeVariant = {
+  '@type': 'enum'
+  '@name': 'regex_syntax::hir:Look'
+  '@variant': 'WordStartUnicode'
+}
+
+/**
+ * Match the end of a Unicode word boundary. That is, this matches a position at
+ *  either the end of the haystack or where the previous character is a word
+ * character and the following character is not a word character.
+ */
+export type LookWordEndUnicodeVariant = {
+  '@type': 'enum'
+  '@name': 'regex_syntax::hir:Look'
+  '@variant': 'WordEndUnicode'
+}
+
+/**
+ * Match the start half of an ASCII-only word boundary. That is, this matches a
+ * position at either the beginning of the haystack or where the previous
+ * character is not a word character.
+ */
+export type LookWordStartHalfAsciiVariant = {
+  '@type': 'enum'
+  '@name': 'regex_syntax::hir::Look',
+  '@variant': 'WordStartHalfAscii'
+}
+
+/**
+ * Match the end half of an ASCII-only word boundary. That is, this matches a
+ * position at either the end of the haystack or where the following character
+ * is not a word character.
+ */
+export type LookWordEndHalfAsciiVariant = {
+  '@type': 'enum'
+  '@name': 'regex_syntax::hir::Look',
+  '@variant': 'WordEndHalfAscii'
+}
+
+/**
+ * Match the start half of a Unicode word boundary. That is, this matches a
+ * position at either the beginning of the haystack or where the previous
+ * character is not a word character.
+ */
+export type LookWordStartHalfUnicodeVariant = {
+  '@type': 'enum'
+  '@name': 'regex_syntax::hir::Look',
+  '@variant': 'WordStartHalfUnicode'
+}
+
+/**
+ * Match the end half of a Unicode word boundary. That is, this matches a
+ * position at either the end of the haystack or where the following character
+ * is not a word character.
+ */
+export type LookWordEndHalfUnicodeVariant = {
+  '@type': 'enum'
+  '@name': 'regex_syntax::hir::Look',
+  '@variant': 'WordEndHalfUnicode'
 }"#;
 
 impl Serialize for Hir<&hir::Look> {
@@ -704,6 +801,30 @@ impl Serialize for Hir<&hir::Look> {
             }
             hir::Look::WordUnicodeNegate => {
                 hir.serialize_field("@variant", "WordUnicodeNegate")?;
+            }
+            hir::Look::WordStartAscii => {
+                hir.serialize_field("@variant", "WordStartAscii")?;
+            }
+            hir::Look::WordEndAscii => {
+                hir.serialize_field("@variant", "WordEndAscii")?;
+            }
+            hir::Look::WordStartUnicode => {
+                hir.serialize_field("@variant", "WordStartUnicode")?;
+            }
+            hir::Look::WordEndUnicode => {
+                hir.serialize_field("@variant", "WordEndUnicode")?;
+            }
+            hir::Look::WordStartHalfAscii => {
+                hir.serialize_field("@variant", "WordStartHalfAscii")?;
+            }
+            hir::Look::WordEndHalfAscii => {
+                hir.serialize_field("@variant", "WordEndHalfAscii")?;
+            }
+            hir::Look::WordStartHalfUnicode => {
+                hir.serialize_field("@variant", "WordStartHalfUnicode")?;
+            }
+            hir::Look::WordEndHalfUnicode => {
+                hir.serialize_field("@variant", "WordEndHalfUnicode")?;
             }
         };
         hir.end()

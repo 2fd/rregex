@@ -82,6 +82,11 @@
         "channel": "1.8.x"
       },
       {
+        "name": "1.9.x",
+        "range": "1.9.x",
+        "channel": "1.9.x"
+      },
+      {
         "name": "master"
       }
     ]
