@@ -77,6 +77,11 @@
         "channel": "1.7.x"
       },
       {
+        "name": "1.8.x",
+        "range": "1.8.x",
+        "channel": "1.8.x"
+      },
+      {
         "name": "master"
       }
     ]
