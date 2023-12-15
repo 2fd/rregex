@@ -114,8 +114,8 @@ describe(`RRegex`, () => {
     const re4 = new RRegex("(?<a>.(?<b>.))(.)(?:.)(?<c>.)")
     expect(re4.capturesLength()).toEqual(5)
 
-    // const re5 = new RRegex("[a&&b]")
-    // expect(re5.capturesLength()).toEqual(1)
+    const re5 = new RRegex("[a&&b]")
+    expect(re5.capturesLength()).toEqual(1)
   })
 
   test(`captureNames`, () => {
@@ -1002,6 +1002,34 @@ describe(`RRegex`, () => {
               }
             }
           ]
+        }
+      })
+    })
+
+
+    test('Empty character class', () => {
+      const regex = new RRegex('[a&&b]')
+      expect(regex.syntax()).toEqual({
+        "@name": "regex_syntax::hir::Hir",
+        "@type": "struct",
+        "kind": {
+          "@name": "regex_syntax::hir::HirKind",
+          "@type": "enum",
+          "@variant": "Class",
+          "@values": [
+            {
+              "@name": "regex_syntax::hir::Class",
+              "@type": "enum",
+              "@variant": "Bytes",
+              "@values": [
+                {
+                  "@name": "regex_syntax::hir::ClassBytes",
+                  "@type": "struct",
+                  "ranges": []
+                }
+              ]
+            }
+          ],
         }
       })
     })
