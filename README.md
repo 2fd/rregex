@@ -13,7 +13,7 @@ A WebAssembly build of [Rust Regex](https://docs.rs/regex/latest/regex/) for Jav
   - [`findAt(text: string): Match | undefined;`](#findattext-string-match--undefined)
   - [`findAll(text: string): Match[];`](#findalltext-string-match)
   - [`capturesLength(): number;`](#captureslength-number) (since 1.8)
-  - [`captureNames(): string[];`](#capturenames-string) (since 1.8)
+  - [`captureNames(): (string | null)[];`](#capturenames-string--null) (since 1.8)
   - [`captures(text: string): Captures | undefined;`](#capturestext-string-captures--undefined) (since 1.8)
   - [`capturesAll(text: string): Captures[];`](#capturesalltext-string-captures) (since 1.8)
   - [`replace(text: string, rep: string): string;`](#replacetext-string-rep-string-string)
@@ -142,7 +142,7 @@ Returns an array for each successive non-overlapping match in text, returning th
 
 [See Documentation for `find_iter`](https://docs.rs/regex/latest/regex/struct.Regex.html#method.find_iter)
 
-### `captureNames(): string[];`
+### `captureNames(): (string | null)[];`
 
 > Note: available since 1.8
 
