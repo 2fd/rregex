@@ -2,7 +2,7 @@
 name = "rregex"
 description = "Rust Regex binding for Javascript"
 license = "MIT"
-version = "1.8.0"
+version = "1.9.0"
 authors = [ "Fede Ramirez <i@2fd.me>" ]
 publish = false
 readme = "README.md"
@@ -11,7 +11,7 @@ homepage = "http://rregex.dev"
 repository = "https://github.com/2fd/rregex"
 
 [dependencies]
-regex = "~1.8"
+regex = "~1.9"
 regex-syntax = "0.7"
 js-sys = "0.3"
 wasm-bindgen = "0.2"
