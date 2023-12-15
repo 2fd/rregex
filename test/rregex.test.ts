@@ -121,6 +121,7 @@ describe(`RRegex`, () => {
   test(`captureNames`, () => {
     const regex = new RRegex('(?P<y>\\d{4})-(?P<m>\\d{2})-(?P<d>\\d{2})')
     expect(regex.captureNames()).toEqual([
+      null,
       "y",
       "m",
       "d",

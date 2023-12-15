@@ -152,7 +152,10 @@ impl RRegex {
     pub fn capture_names(&self) -> Vec<JsValue> {
         self.regex
             .capture_names()
-            .filter_map(|item| item.map(JsValue::from))
+            .map(|item| match item {
+                Some(name) => JsValue::from(name),
+                None => JsValue::NULL,
+            })
             .collect()
     }
 
