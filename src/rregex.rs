@@ -9,6 +9,43 @@ use wasm_bindgen::JsValue;
 type Result<T> = std::result::Result<T, serde_wasm_bindgen::Error>;
 
 /// A compiled regular expression for matching Unicode strings.
+///
+/// A `RRegex` can be used to search haystacks, split haystacks into substrings
+/// or replace substrings in a haystack with a different substring. All
+/// searching is done with an implicit `(?s:.)*?` at the beginning and end of
+/// an pattern. To force an expression to match the whole string (or a prefix
+/// or a suffix), you must use an anchor like `^` or `$` (or `\A` and `\z`).
+///
+/// While this library will handle Unicode strings (whether in the regular
+/// expression or in the haystack), all positions returned are **byte
+/// offsets**. Every byte offset is guaranteed to be at a Unicode code point
+/// boundary. That is, all offsets returned by the `RRegex` API are guaranteed
+/// to be ranges that can slice an `Uint8Array` created with a TextEncoder.
+///
+/// # Example: slicing over UTF strings
+///
+/// ```typescript
+/// import { RRegex } from "rregex"
+///
+/// const re = new RRegex("ä")
+/// const m = re.find("äöü")
+///
+/// const buff = new TextEncoder().encode("äöü")
+/// const slice = buff.slice(m.start /* 0 */, m.end /* 2 */)
+/// expect(new TextDecoder().decode(slice)).toBe("ä")
+/// ```
+///
+/// # Example: find the offsets of a US phone number:
+///
+/// ```typescript
+/// import { RRegex } from "rregex"
+///
+/// const re = new Regex("[0-9]{3}-[0-9]{3}-[0-9]{4}");
+/// const m = re.find("phone: 111-222-3333");
+/// expect(m.start).toBe(7);
+/// expect(m.end).toBe(19);
+/// ```
+///
 /// @see https://docs.rs/regex/latest/regex/
 #[wasm_bindgen]
 pub struct RRegex {
@@ -41,6 +78,8 @@ impl RRegex {
     /// Unicode word characters:
     ///
     /// ```typescript
+    /// import { RRegex } from "rregex"
+    ///
     /// const text = "I categorically deny having triskaidekaphobia."
     /// expect(new RRegex("\\b\\w{13}\\b").is_match(text)).toBe(true)
     /// ```
@@ -84,6 +123,8 @@ impl RRegex {
     /// Unicode word characters:
     ///
     /// ```typescript
+    /// import { RRegex } from "rregex"
+    ///
     /// const text = "I categorically deny having triskaidekaphobia."
     /// const m = new Regex("\\b\\w{13}\\b").find(text)
     /// expect(m.start).toBe(2)
@@ -132,6 +173,8 @@ impl RRegex {
     /// word characters:
     ///
     /// ```typescript
+    /// import { RRegex } from "rregex"
+    ///
     /// const text = "Retroactively relinquishing remunerations is reprehensible."
     /// const matches = new Regex("\\b\\w{13}\\b").findAll(text)
     /// ```
@@ -176,6 +219,8 @@ impl RRegex {
     /// year separately.
     ///
     /// ```typescript
+    /// import { RRegex } from "rregex"
+    ///
     /// const re = new Regex("'([^']+)'\\s+\\((\\d{4})\)")
     /// const text = "Not my favorite movie: 'Citizen Kane' (1941)."
     /// const caps = re.captures(text)
@@ -190,6 +235,8 @@ impl RRegex {
     /// We can make this example a bit clearer by using *named* capture groups:
     ///
     /// ```typescript
+    /// import { RRegex } from "rregex"
+    ///
     /// const re = new Regex("'(?P<title>[^']+)'\\s+\\((?P<year>\\d{4})\)")
     /// const text = "Not my favorite movie: 'Citizen Kane' (1941)."
     /// const caps = re.captures(text)
@@ -220,6 +267,8 @@ impl RRegex {
     /// some text, where the movie is formatted like "'Title' (xxxx)":
     ///
     /// ```typescript
+    /// import { RRegex } from "rregex"
+    ///
     /// const re = new Regex("'(?P<title>[^']+)'\\s+\\((?P<year>\\d{4})\\)")
     /// const text = "'Citizen Kane' (1941), 'The Wizard of Oz' (1939), 'M' (1931)."
     /// for caps of re.captures_iter(text) {
@@ -260,6 +309,8 @@ impl RRegex {
     /// ## Example
     ///
     /// ```typescript
+    ///  import { RRegex } from "rregex"
+    ///
     ///  const re1 = new RRegex("(?P<y>\\d{4})-(?P<m>\\d{2})-(?P<d>\\d{2})")
     ///  expect(re1.capturesLength()).toEqual(4)
     ///
@@ -314,6 +365,8 @@ impl RRegex {
     /// In typical usage, this can just be a normal string:
     ///
     /// ```typescript
+    /// import { RRegex } from "rregex"
+    ///
     /// const re = new Regex("[^01]+")
     /// expect(re.replace("1078910", "").toBe("1010")
     /// ```
@@ -322,6 +375,8 @@ impl RRegex {
     /// groups:
     ///
     /// ```typescript
+    /// import { RRegex } from "rregex"
+    ///
     /// const re = new Regex("(?P<last>[^,\\s]+),\\s+(?P<first>\\S+)")
     /// const result = re.replace("Springsteen, Bruce", "$first $last")
     /// expect(result).toBe("Bruce Springsteen")
@@ -336,6 +391,8 @@ impl RRegex {
     /// underscore:
     ///
     /// ```typescript
+    /// import { RRegex } from "rregex"
+    ///
     /// const re = new Regex("(?P<first>\\w+)\\s+(?P<second>\\w+)")
     /// const result = re.replace("deep fried", "${first}_$second")
     /// expect(result).toBe("deep_fried")
@@ -399,6 +456,8 @@ impl RRegex {
     /// To split a string delimited by arbitrary amounts of spaces or tabs:
     ///
     /// ```typescript
+    /// import { RRegex } from "rregex"
+    ///
     /// const re = new Regex(r"[ \\t]+")
     /// const fields = re.split("a b \t  c\td    e")
     /// expect(fields).toEqual(["a", "b", "c", "d", "e"])
@@ -425,6 +484,8 @@ impl RRegex {
     /// Get the first two words in some text:
     ///
     /// ```typescript
+    /// import { RRegex } from "rregex"
+    ///
     /// const re = new Regex(r"\\W+")
     /// const fields = re.splitn("Hey! How are you?", 3)
     /// expect(fields).toEqual(["Hey", "How", "are you?"])
@@ -462,6 +523,8 @@ impl RRegex {
     /// `a`.
     ///
     /// ```typescript
+    /// import { RRegex } from "rregex"
+    ///
     /// const text = "aaaaa"
     /// const = new Regex("a+").shortest_match(text)
     /// expect(pos).toBe(1)
