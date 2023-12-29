@@ -30,6 +30,8 @@ impl RRegexSet {
     /// Create a new regex set from an iterator of strings:
     ///
     /// ```typescript
+    /// import { RegexSet } from "rregex"
+    ///
     /// const set = new RegexSet(["\\w+", "\\d+"])
     /// expect(set.is_match("foo")).toBe(true)
     /// ```
@@ -68,6 +70,8 @@ impl RRegexSet {
     /// Tests whether a set matches some text:
     ///
     /// ```typescript
+    /// import { RegexSet } from "rregex"
+    ///
     /// const set = new RegexSet(["\\w+", "\\d+"])
     /// expect(set.is_match("foo")).toBe(true)
     /// expect(!set.is_match("☃")).toBe(false)
@@ -99,6 +103,8 @@ impl RRegexSet {
     /// Tests which regular expressions match the given text:
     ///
     /// ```typescript
+    /// import { RegexSet } from "rregex"
+    ///
     /// const set = new RegexSet([
     ///     "\\w+",
     ///     "\\d+",

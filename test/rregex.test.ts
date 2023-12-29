@@ -1058,3 +1058,35 @@ describe(`RRegexSet`, () => {
     expect(set.matches('foobar')).toEqual([0, 2, 3, 4, 6])
   })
 })
+
+describe("Match", () => {
+  test("äöü", () => {
+    const re = new RRegex("ä")
+    const m = re.find("äöü")! // { start: 0, end: 2 }
+    expect("äöü".slice(m.start, m.end)).toBe("äö")
+
+    const buff = new TextEncoder().encode("äöü")
+    const slice = buff.slice(m.start, m.end)
+    expect(new TextDecoder().decode(slice)).toBe("ä")
+  })
+
+  test("Greek: αβγδ", () => {
+    const re = new RRegex("\\p{Greek}+");
+    const hay = "Greek: αβγδ";
+    const m = re.find(hay)!;
+    expect(m.start).toBe(7);
+    expect(m.end).toBe(15);
+    expect(m.value).toBe("αβγδ");
+  })
+})
+
+describe("Captures", () => {
+  test("toady", () => {
+    const re = new RRegex("(?<first>\\w)(\\w)(?:\\w)\\w(?<last>\\w)");
+    const caps = re.captures("toady")!;
+    expect(caps.get[0].value).toBe("toady");
+    expect(caps.name["first"].value).toBe("t");
+    expect(caps.get[2].value).toBe("o");
+    expect(caps.name["last"].value).toBe("y");
+  })
+})

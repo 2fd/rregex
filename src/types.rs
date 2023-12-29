@@ -7,6 +7,50 @@ use wasm_bindgen::prelude::*;
 #[wasm_bindgen(typescript_custom_section)]
 const MATCH_TYPE: &'static str = r#"/**
  * Represents a single match of a regex in a haystack.
+ *
+ * A `Match` contains both the start and end byte offsets of the match and the
+ * actual substring corresponding to the range of those byte offsets. It is
+ * guaranteed that `start <= end`. When `start == end`, the match is empty.
+ *
+ * Since this `Match` can only be produced by the top-level `Regex` APIs
+ * that only support searching UTF-8 encoded strings, the byte offsets for a
+ * `Match` are guaranteed to fall on valid UTF-8 codepoint boundaries. That
+ * is, slicing an `Uint8Array` created with a TextEncoder is guaranteed to never
+ * be out of range.
+ *
+ * # Numbering
+ *
+ * The byte offsets in a `Match` form a half-open interval. That is, the
+ * start of the range is inclusive and the end of the range is exclusive.
+ * For example, given a haystack `abcFOOxyz` and a match of `FOO`, its byte
+ * offset range starts at `3` and ends at `6`. `3` corresponds to `F` and
+ * `6` corresponds to `x`, which is one past the end of the match. This
+ * corresponds to the same kind of slicing that Rust uses.
+ *
+ * For more on why this was chosen over other schemes (aside from being
+ * consistent with how Rust the language works), see [this discussion] and
+ * [Dijkstra's note on a related topic][note].
+ *
+ * [this discussion]: https://github.com/rust-lang/regex/discussions/866
+ * [note]: https://www.cs.utexas.edu/users/EWD/transcriptions/EWD08xx/EWD831.html
+ *
+ * # Example
+ *
+ * This example shows the value of each of the methods on `Match` for a
+ * particular search.
+ *
+ * ```typescript
+ * import { RRegex } from "rregex"
+ *
+ * const re = new RRegex("\\p{Greek}+");
+ * const hay = "Greek: αβγδ";
+ * const m = re.find(hay);
+ * expect(m.start).toBe(7);
+ * expect(m.end).toBe(15);
+ * expect(m.value).toBe("αβγδ");
+ * ```
+ *
+ * @see  @see https://docs.rs/regex/latest/regex/
  */
 export type Match = {
   start: number
@@ -43,15 +87,48 @@ impl<'t> Serialize for Match<'t> {
 }
 
 #[wasm_bindgen(typescript_custom_section)]
-const Captures_TYPE: &'static str = r#"/**
- * Captures represents a group of captured strings for a single match.
+const CAPTURES_TYPE: &'static str = r#"/**
+ * Represents the capture groups for a single match.
  *
- * The 0th capture always corresponds to the entire match. Each subsequent index
- * corresponds to the next capture group in the regex. If a capture group is named,
- * then the matched string is also available via the name property. (Note that the
- * 0th capture is always unnamed and so must be accessed with the get property.)
+ * Capture groups refer to parts of a regex enclosed in parentheses. They can
+ * be optionally named. The purpose of capture groups is to be able to
+ * reference different parts of a match based on the original pattern. For
+ * example, say you want to match the individual letters in a 5-letter word:
  *
- * Positions returned from a capture group are always byte indices.
+ * ```text
+ * (?<first>\w)(\w)(?:\w)\w(?<last>\w)
+ * ```
+ *
+ * This regex has 4 capture groups:
+ *
+ * * The group at index `0` corresponds to the overall match. It is always
+ * present in every match and never has a name.
+ * * The group at index `1` with name `first` corresponding to the first
+ * letter.
+ * * The group at index `2` with no name corresponding to the second letter.
+ * * The group at index `3` with name `last` corresponding to the fifth and
+ * last letter.
+ *
+ * Notice that `(?:\w)` was not listed above as a capture group despite it
+ * being enclosed in parentheses. That's because `(?:pattern)` is a special
+ * syntax that permits grouping but *without* capturing. The reason for not
+ * treating it as a capture is that tracking and reporting capture groups
+ * requires additional state that may lead to slower searches. So using as few
+ * capture groups as possible can help performance. (Although the difference
+ * in performance of a couple of capture groups is likely immaterial.)
+ *
+ * # Example
+ *
+ * ```typescript
+ * import { RRegex } from "rregex"
+ *
+ * const re = new RRegex("(?<first>\\w)(\\w)(?:\\w)\\w(?<last>\\w)");
+ * const caps = re.captures("toady");
+ * expect(caps.get[0].value).toBe("toady");
+ * expect(caps.name["first"].value).toBe("t");
+ * expect(caps.get[2].value).toBe("o");
+ * expect(caps.name["last"].value).toBe("y");
+ * ```
  */
 export type Captures = {
   get: Match[]
