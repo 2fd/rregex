@@ -28,10 +28,10 @@ type Result<T> = std::result::Result<T, serde_wasm_bindgen::Error>;
 /// import { RRegex } from "rregex"
 ///
 /// const re = new RRegex("ä")
-/// const m = re.find("äöü")
+/// const m = re.find("äöü") // { start: 0, end: 2 }
 ///
 /// const buff = new TextEncoder().encode("äöü")
-/// const slice = buff.slice(m.start /* 0 */, m.end /* 2 */)
+/// const slice = buff.slice(m.start, m.end)
 /// expect(new TextDecoder().decode(slice)).toBe("ä")
 /// ```
 ///
