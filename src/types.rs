@@ -42,7 +42,7 @@ const MATCH_TYPE: &'static str = r#"/**
  * ```typescript
  * import { RRegex } from "rregex"
  *
- * const re = new Regex("\p{Greek}+");
+ * const re = new RRegex("\\p{Greek}+");
  * const hay = "Greek: αβγδ";
  * const m = re.find(hay);
  * expect(m.start).toBe(7);
@@ -122,7 +122,7 @@ const CAPTURES_TYPE: &'static str = r#"/**
  * ```typescript
  * import { RRegex } from "rregex"
  *
- * const re = new Regex("(?<first>\w)(\w)(?:\w)\w(?<last>\w)");
+ * const re = new RRegex("(?<first>\\w)(\\w)(?:\\w)\\w(?<last>\\w)");
  * const caps = re.captures("toady");
  * expect(caps.get[0].value).toBe("toady");
  * expect(caps.name["first"].value).toBe("t");

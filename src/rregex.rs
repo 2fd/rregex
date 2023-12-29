@@ -40,7 +40,7 @@ type Result<T> = std::result::Result<T, serde_wasm_bindgen::Error>;
 /// ```typescript
 /// import { RRegex } from "rregex"
 ///
-/// const re = new Regex("[0-9]{3}-[0-9]{3}-[0-9]{4}");
+/// const re = new RRegex("[0-9]{3}-[0-9]{3}-[0-9]{4}");
 /// const m = re.find("phone: 111-222-3333");
 /// expect(m.start).toBe(7);
 /// expect(m.end).toBe(19);
@@ -126,7 +126,7 @@ impl RRegex {
     /// import { RRegex } from "rregex"
     ///
     /// const text = "I categorically deny having triskaidekaphobia."
-    /// const m = new Regex("\\b\\w{13}\\b").find(text)
+    /// const m = new RRegex("\\b\\w{13}\\b").find(text)
     /// expect(m.start).toBe(2)
     /// expect(m.end).toBe(15)
     /// ```
@@ -176,7 +176,7 @@ impl RRegex {
     /// import { RRegex } from "rregex"
     ///
     /// const text = "Retroactively relinquishing remunerations is reprehensible."
-    /// const matches = new Regex("\\b\\w{13}\\b").findAll(text)
+    /// const matches = new RRegex("\\b\\w{13}\\b").findAll(text)
     /// ```
     ///
     /// @see https://docs.rs/regex/latest/regex/struct.Regex.html#method.find_iter
@@ -221,7 +221,7 @@ impl RRegex {
     /// ```typescript
     /// import { RRegex } from "rregex"
     ///
-    /// const re = new Regex("'([^']+)'\\s+\\((\\d{4})\)")
+    /// const re = new RRegex("'([^']+)'\\s+\\((\\d{4})\)")
     /// const text = "Not my favorite movie: 'Citizen Kane' (1941)."
     /// const caps = re.captures(text)
     /// expect(caps.get[1].value).toBe("Citizen Kane")
@@ -237,7 +237,7 @@ impl RRegex {
     /// ```typescript
     /// import { RRegex } from "rregex"
     ///
-    /// const re = new Regex("'(?P<title>[^']+)'\\s+\\((?P<year>\\d{4})\)")
+    /// const re = new RRegex("'(?P<title>[^']+)'\\s+\\((?P<year>\\d{4})\)")
     /// const text = "Not my favorite movie: 'Citizen Kane' (1941)."
     /// const caps = re.captures(text)
     /// expect(caps.name["title"].value).toBe("Citizen Kane")
@@ -269,7 +269,7 @@ impl RRegex {
     /// ```typescript
     /// import { RRegex } from "rregex"
     ///
-    /// const re = new Regex("'(?P<title>[^']+)'\\s+\\((?P<year>\\d{4})\\)")
+    /// const re = new RRegex("'(?P<title>[^']+)'\\s+\\((?P<year>\\d{4})\\)")
     /// const text = "'Citizen Kane' (1941), 'The Wizard of Oz' (1939), 'M' (1931)."
     /// for caps of re.captures_iter(text) {
     ///     console.log(
@@ -367,7 +367,7 @@ impl RRegex {
     /// ```typescript
     /// import { RRegex } from "rregex"
     ///
-    /// const re = new Regex("[^01]+")
+    /// const re = new RRegex("[^01]+")
     /// expect(re.replace("1078910", "").toBe("1010")
     /// ```
     ///
@@ -377,7 +377,7 @@ impl RRegex {
     /// ```typescript
     /// import { RRegex } from "rregex"
     ///
-    /// const re = new Regex("(?P<last>[^,\\s]+),\\s+(?P<first>\\S+)")
+    /// const re = new RRegex("(?P<last>[^,\\s]+),\\s+(?P<first>\\S+)")
     /// const result = re.replace("Springsteen, Bruce", "$first $last")
     /// expect(result).toBe("Bruce Springsteen")
     /// ```
@@ -393,7 +393,7 @@ impl RRegex {
     /// ```typescript
     /// import { RRegex } from "rregex"
     ///
-    /// const re = new Regex("(?P<first>\\w+)\\s+(?P<second>\\w+)")
+    /// const re = new RRegex("(?P<first>\\w+)\\s+(?P<second>\\w+)")
     /// const result = re.replace("deep fried", "${first}_$second")
     /// expect(result).toBe("deep_fried")
     /// ```
@@ -458,7 +458,7 @@ impl RRegex {
     /// ```typescript
     /// import { RRegex } from "rregex"
     ///
-    /// const re = new Regex(r"[ \\t]+")
+    /// const re = new RRegex(r"[ \\t]+")
     /// const fields = re.split("a b \t  c\td    e")
     /// expect(fields).toEqual(["a", "b", "c", "d", "e"])
     /// ```
@@ -486,7 +486,7 @@ impl RRegex {
     /// ```typescript
     /// import { RRegex } from "rregex"
     ///
-    /// const re = new Regex(r"\\W+")
+    /// const re = new RRegex(r"\\W+")
     /// const fields = re.splitn("Hey! How are you?", 3)
     /// expect(fields).toEqual(["Hey", "How", "are you?"])
     /// ```
@@ -526,7 +526,7 @@ impl RRegex {
     /// import { RRegex } from "rregex"
     ///
     /// const text = "aaaaa"
-    /// const = new Regex("a+").shortest_match(text)
+    /// const = new RRegex("a+").shortest_match(text)
     /// expect(pos).toBe(1)
     /// ```
     ///
