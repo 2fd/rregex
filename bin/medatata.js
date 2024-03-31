@@ -1,4 +1,4 @@
-const { readFileSync, writeFileSync, appendFileSync } = require('fs')
+const { readFileSync, appendFileSync } = require('fs')
 const { resolve } = require('path')
 const toml = require('toml')
 
