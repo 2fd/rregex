@@ -32,17 +32,17 @@ jobs:
           node-version: ${{ matrix.node }}
           registry-url: https://registry.npmjs.org/
 
-      - name: setup
-        run: bash ./bin/install.sh
-
       - name: installing
         run: npm ci
+
+      - name: setup
+        run: npm run setup
 
       - name: testing wasm
         run: npm run test:rs -- --node
 
       - name: building
-        run: bash ./bin/build.sh
+        run: npm run build
 
       - name: testing builded files
         run: npm run test:ts
