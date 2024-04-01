@@ -16,16 +16,20 @@ on:
       - 1.0.x
 
 jobs:
-  release:
+  node:
     runs-on: ubuntu-20.04
+
+    strategy:
+      matrix:
+        node: [20, 21]
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: node.js 20
+      - name: node.js ${{ matrix.node }}
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: ${{ matrix.node }}
           registry-url: https://registry.npmjs.org/
 
       - name: setup

@@ -1,4 +1,4 @@
-import { RRegex, RRegexSet } from '../lib/commonjs'
+import { RRegex, RRegexSet } from '../lib/commonjs.cjs'
 
 describe(`RRegex`, () => {
   test(`toString`, () => {

@@ -9,6 +9,7 @@ readme = "README.md"
 edition = "2018"
 homepage = "http://rregex.dev"
 repository = "https://github.com/2fd/rregex"
+wasm-opt = false
 
 [dependencies]
 regex = "~1.10"
