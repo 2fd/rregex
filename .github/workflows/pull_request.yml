@@ -82,6 +82,9 @@ jobs:
         run: node lib/commonjs.cjs
 
       - name: running tests
+        run: npm ci
+
+      - name: running tests
         run: npm run test:ts
 
   test_bun:
