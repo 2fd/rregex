@@ -1,0 +1,5 @@
+{
+  "name": "@rregex/rregex",
+  "version": "0.0.0-development",
+  "exports": "./lib/mod.js"
+}

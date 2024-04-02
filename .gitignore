@@ -107,4 +107,3 @@ dist
 .DS_Store
 target/
 lib/
-jsr.json
