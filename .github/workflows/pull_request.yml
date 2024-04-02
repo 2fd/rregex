@@ -42,7 +42,7 @@ jobs:
 
       - uses: actions/upload-artifact@master
         with:
-          name: build
+          name: lib
           path: lib/
 
   test_node:
@@ -57,7 +57,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: node.js ${{ matrix.version }}
+      - name: Run actions/setup-node@v4 (${{ matrix.version }})
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.version }}
@@ -65,7 +65,8 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
-          name: build
+          name: lib
+          path: lib
 
       - name: checking builded files
         run: node lib/commonjs.cjs
@@ -85,14 +86,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: bun.js ${{ matrix.version }}
+      - name: Run oven-sh/setup-bun@v1 (${{ matrix.version }})
         uses: oven-sh/setup-bun@v1
         with:
           bun-version: ${{ matrix.version }}
 
       - uses: actions/download-artifact@v4
         with:
-          name: build
+          name: lib
+          path: lib
 
       - name: checking builded files
         run: bun lib/commonjs.cjs
@@ -108,14 +110,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: deno.js
+      - name: Run denoland/setup-deno@v1 (v1.x)
         uses: denoland/setup-deno@v1
         with:
           deno-version: v1.x
 
       - uses: actions/download-artifact@v4
         with:
-          name: build
+          name: lib
+          path: lib
 
       - name: checking builded files
         run: deno run --allow-read=lib/rregex.wasm lib/mod.js
