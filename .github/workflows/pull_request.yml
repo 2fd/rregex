@@ -78,15 +78,10 @@ jobs:
           name: lib
           path: lib
 
-      - name: checking builded files
-        run: |
-          node lib/commonjs.cjs
-          node lib/esm.mjs
-
-      - name: running tests
-        run: |
-          node --test test/node.test.cjs
-          node --test test/node.test.mjs
+      - run: node lib/commonjs.cjs
+      - run: node lib/esm.mjs
+      - run: node --test test/node.test.cjs
+      - run: node --test test/node.test.mjs
 
   test_bun:
     runs-on: ubuntu-20.04
@@ -110,15 +105,10 @@ jobs:
           name: lib
           path: lib
 
-      - name: checking builded files
-        run: |
-          bun lib/commonjs.cjs
-          bun lib/esm.mjs
-
-      - name: testing builded files
-        run: |
-          bun test test/bun.test.cjs
-          bun test test/bun.test.mjs
+      - run: bun lib/commonjs.cjs
+      - run: bun lib/esm.mjs
+      - run: bun test test/bun.test.cjs
+      - run: bun test test/bun.test.mjs
 
   test_deno:
     runs-on: ubuntu-20.04
@@ -142,8 +132,6 @@ jobs:
           name: lib
           path: lib
 
-      - name: checking builded files
-        run: deno run --allow-read=lib/rregex.wasm lib/mod.js
+      - run: deno run --allow-read=lib/rregex.wasm lib/esm.mjs
 
-      - name: testing builded files
-        run: deno test --allow-read=lib/rregex.wasm test/deno.test.mjs
+      - run: deno test --allow-read=lib/rregex.wasm test/deno.test.mjs
