@@ -9,6 +9,7 @@
   "browser": "./lib/web.js",
   "types": "./lib/types.d.ts",
   "devDependencies": {
+    "@semantic-release/exec": "^6.0.3",
     "concurrently": "^8.2.2",
     "semantic-release": "^23.0.6",
     "toml": "^3.0.0"
@@ -80,6 +81,40 @@
       {
         "name": "master"
       }
+    ],
+    "plugins": [
+      "@semantic-release/commit-analyzer",
+      "@semantic-release/release-notes-generator",
+      "@semantic-release/npm",
+      [
+        "@semantic-release/github",
+        {
+          "assets": [
+            {
+              "path": "lib/standalone.js",
+              "label": "js"
+            },
+            {
+              "path": "lib/esm.mjs",
+              "label": "esm"
+            },
+            {
+              "path": "lib/esm.d.ts",
+              "label": "typescript"
+            },
+            {
+              "path": "lib/rregex.wasm",
+              "label": "wasm"
+            }
+          ]
+        }
+      ],
+      [
+        "@semantic-release/exec",
+        {
+          "publishCmd": "node bin/jsr.mjs ${nextRelease.version} && npx jsr publish"
+        }
+      ]
     ]
   },
   "repository": {

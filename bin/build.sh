@@ -58,18 +58,18 @@ cp lib_deno/rregex.d.ts lib/esm.d.ts
 echo -e "import { readFile } from \"node:fs/promises\";\n$(cat lib_deno/rregex.js)" > lib/esm.mjs
 
 echo "  🔗  Fixing references..."
-replace 's/rregex_bg.wasm/rregex.wasm/g' lib/web.js
+replace 's/rregex_bg\.wasm/rregex.wasm/g' lib/web.js
 
-replace 's/rregex_bg.wasm/rregex.wasm/g' lib/commonjs.cjs
+replace 's/rregex_bg\.wasm/rregex.wasm/g' lib/commonjs.cjs
 replace 's/__wbindgen_placeholder__/wbg/g' lib/commonjs.cjs
 
 replace 's/\\\.js\$/standalone\\.js$/g' lib/standalone.js
-replace 's/_bg.wasm/rregex.wasm/g' lib/standalone.js
+replace 's/_bg\.wasm/rregex.wasm/g' lib/standalone.js
 
-replace 's/rregex_bg.wasm/rregex.wasm/g' lib/bundler.mjs
-replace 's/rregex_bg.js/bundler_bg.mjs/g' lib/bundler.mjs
+replace 's/rregex_bg\.wasm/rregex.wasm/g' lib/bundler.mjs
+replace 's/rregex_bg\.js/bundler_bg.mjs/g' lib/bundler.mjs
 
-replace 's/rregex_bg.wasm/rregex.wasm/g' lib/esm.mjs
+replace 's/rregex_bg\.wasm/rregex.wasm/g' lib/esm.mjs
 replace 's/__wbindgen_placeholder__/wbg/g' lib/esm.mjs
 replace 's/Deno\.readFile/readFile/g' lib/esm.mjs
 
