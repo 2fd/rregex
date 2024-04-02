@@ -1,5 +1,5 @@
 import { assertEquals } from "https://deno.land/std@0.221.0/assert/mod.ts";
-import { RRegex, RRegexSet } from '../lib/mod.js'
+import { RRegex, RRegexSet } from '../lib/esm.mjs'
 
 Deno.test(`RRegex::toString`, () => {
   assertEquals(new RRegex('a').toString(), 'a')

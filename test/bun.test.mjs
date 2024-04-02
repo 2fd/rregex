@@ -1,6 +1,6 @@
-const { test } = require("node:test")
-const { deepEqual } = require("node:assert")
-const { RRegex, RRegexSet } = require('../lib/commonjs.cjs')
+import { deepEqual } from "node:assert"
+import { test } from "bun:test"
+import { RRegex, RRegexSet } from '../lib/esm.mjs'
 
 test(`RRegex::toString`, () => {
   deepEqual(new RRegex('a').toString(), 'a')

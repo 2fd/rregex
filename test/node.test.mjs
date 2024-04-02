@@ -1,46 +1,48 @@
-const { RRegex, RRegexSet } = require('../lib/commonjs.cjs')
+import { deepEqual } from "node:assert"
+import { test } from "node:test"
+import { RRegex, RRegexSet } from '../lib/esm.mjs'
 
 test(`RRegex::toString`, () => {
-  expect(new RRegex('a').toString()).toEqual('a')
+  deepEqual(new RRegex('a').toString(), 'a')
 })
 
 test(`RRegex::isMatch`, () => {
   const regex = new RRegex('a')
-  expect(regex.isMatch('abc')).toEqual(true)
-  expect(regex.isMatch('def')).toEqual(false)
+  deepEqual(regex.isMatch('abc'), true)
+  deepEqual(regex.isMatch('def'), false)
 
   const text = 'I categorically deny having triskaidekaphobia.';
   const re = new RRegex('\\b\\w{13}\\b')
-  expect(re.isMatch(text)).toEqual(true);
+  deepEqual(re.isMatch(text), true);
 })
 
 test(`RRegex::isMatchAt`, () => {
   const regex = new RRegex('a')
-  expect(regex.isMatchAt('ab', 0)).toEqual(true)
-  expect(regex.isMatchAt('ab', 1)).toEqual(false)
-  expect(regex.isMatchAt('ab', 1)).toEqual(false)
-  expect(regex.isMatchAt('ab', 100)).toEqual(false)
-  expect(regex.isMatchAt('aba', 0)).toEqual(true)
-  expect(regex.isMatchAt('aba', 1)).toEqual(true)
-  expect(regex.isMatchAt('aba', 2)).toEqual(true)
-  expect(regex.isMatchAt('aba', 3)).toEqual(false)
-  expect(regex.isMatchAt('aba', 100)).toEqual(false)
-  expect(regex.isMatchAt('def', 0)).toEqual(false)
+  deepEqual(regex.isMatchAt('ab', 0), true)
+  deepEqual(regex.isMatchAt('ab', 1), false)
+  deepEqual(regex.isMatchAt('ab', 1), false)
+  deepEqual(regex.isMatchAt('ab', 100), false)
+  deepEqual(regex.isMatchAt('aba', 0), true)
+  deepEqual(regex.isMatchAt('aba', 1), true)
+  deepEqual(regex.isMatchAt('aba', 2), true)
+  deepEqual(regex.isMatchAt('aba', 3), false)
+  deepEqual(regex.isMatchAt('aba', 100), false)
+  deepEqual(regex.isMatchAt('def', 0), false)
 
   const text = 'I categorically deny having triskaidekaphobia.'
   const re = new RRegex('\\b\\w{13}\\b')
-  expect(re.isMatchAt(text, 1)).toEqual(true)
-  expect(re.isMatchAt(text, 5)).toEqual(false)
+  deepEqual(re.isMatchAt(text, 1), true)
+  deepEqual(re.isMatchAt(text, 5), false)
 })
 
 test(`RRegex::find`, () => {
   const regex = new RRegex('a')
-  expect(regex.find('abc')).toEqual({ value: 'a', start: 0, end: 1 })
-  expect(regex.find('def')).toEqual(undefined)
+  deepEqual(regex.find('abc'), { value: 'a', start: 0, end: 1 })
+  deepEqual(regex.find('def'), undefined)
 
   const text = 'I categorically deny having triskaidekaphobia.'
   const re = new RRegex('\\b\\w{13}\\b')
-  expect(re.find(text)).toEqual({
+  deepEqual(re.find(text), {
     value: 'categorically',
     start: 2,
     end: 15,
@@ -49,34 +51,34 @@ test(`RRegex::find`, () => {
 
 test(`RRegex::findAt`, () => {
   const regex = new RRegex('a')
-  expect(regex.find('abc')).toEqual({ value: 'a', start: 0, end: 1 })
-  expect(regex.findAt('abc', 1)).toEqual(undefined)
-  expect(regex.findAt('abc', 100)).toEqual(undefined)
-  expect(regex.find('def')).toEqual(undefined)
+  deepEqual(regex.find('abc'), { value: 'a', start: 0, end: 1 })
+  deepEqual(regex.findAt('abc', 1), undefined)
+  deepEqual(regex.findAt('abc', 100), undefined)
+  deepEqual(regex.find('def'), undefined)
 
   const text = 'I categorically deny having triskaidekaphobia.'
   const re = new RRegex('\\b\\w{13}\\b')
-  expect(re.findAt(text, 1)).toEqual({
+  deepEqual(re.findAt(text, 1), {
     value: 'categorically',
     start: 2,
     end: 15,
   })
 
-  expect(re.findAt(text, 5)).toEqual(undefined)
+  deepEqual(re.findAt(text, 5), undefined)
 })
 
 test(`RRegex::findAll`, () => {
   const regex = new RRegex('a')
-  expect(regex.findAll('abcabcabc')).toEqual([
+  deepEqual(regex.findAll('abcabcabc'), [
     { value: 'a', start: 0, end: 1 },
     { value: 'a', start: 3, end: 4 },
     { value: 'a', start: 6, end: 7 },
   ])
-  expect(regex.findAll('def')).toEqual([])
+  deepEqual(regex.findAll('def'), [])
 
   const text = 'Retroactively relinquishing remunerations is reprehensible.'
   const re = new RRegex('\\b\\w{13}\\b')
-  expect(re.findAll(text)).toEqual([
+  deepEqual(re.findAll(text), [
     {
       "end": 13,
       "start": 0,
@@ -102,24 +104,24 @@ test(`RRegex::findAll`, () => {
 
 test(`RRegex::capturesLength`, () => {
   const re1 = new RRegex("(?P<y>\\d{4})-(?P<m>\\d{2})-(?P<d>\\d{2})")
-  expect(re1.capturesLength()).toEqual(4)
+  deepEqual(re1.capturesLength(), 4)
 
   const re2 = new RRegex("foo")
-  expect(re2.capturesLength()).toEqual(1)
+  deepEqual(re2.capturesLength(), 1)
 
   const re3 = new RRegex("(foo)")
-  expect(re3.capturesLength()).toEqual(2)
+  deepEqual(re3.capturesLength(), 2)
 
   const re4 = new RRegex("(?<a>.(?<b>.))(.)(?:.)(?<c>.)")
-  expect(re4.capturesLength()).toEqual(5)
+  deepEqual(re4.capturesLength(), 5)
 
   const re5 = new RRegex("[a&&b]")
-  expect(re5.capturesLength()).toEqual(1)
+  deepEqual(re5.capturesLength(), 1)
 })
 
 test(`RRegex::captureNames`, () => {
   const regex = new RRegex('(?P<y>\\d{4})-(?P<m>\\d{2})-(?P<d>\\d{2})')
-  expect(regex.captureNames()).toEqual([
+  deepEqual(regex.captureNames(), [
     null,
     "y",
     "m",
@@ -129,8 +131,8 @@ test(`RRegex::captureNames`, () => {
 
 test(`RRegex::captures`, () => {
   const regex = new RRegex('(?P<y>\\d{4})-(?P<m>\\d{2})-(?P<d>\\d{2})')
-  expect(regex.captures('')).toEqual(undefined)
-  expect(regex.captures('2012-03-14')).toEqual({
+  deepEqual(regex.captures(''), undefined)
+  deepEqual(regex.captures('2012-03-14'), {
     get: [
       { value: '2012-03-14', start: 0, end: 10 },
       { value: '2012', start: 0, end: 4 },
@@ -147,8 +149,8 @@ test(`RRegex::captures`, () => {
 
 test(`RRegex::capturesAll`, () => {
   const regex = new RRegex('(?P<y>\\d{4})-(?P<m>\\d{2})-(?P<d>\\d{2})')
-  expect(regex.capturesAll('')).toEqual([])
-  expect(regex.capturesAll('2012-03-14')).toEqual([{
+  deepEqual(regex.capturesAll(''), [])
+  deepEqual(regex.capturesAll('2012-03-14'), [{
     get: [
       { value: '2012-03-14', start: 0, end: 10 },
       { value: '2012', start: 0, end: 4 },
@@ -162,7 +164,7 @@ test(`RRegex::capturesAll`, () => {
     }
   }])
 
-  expect(regex.capturesAll('2012-03-14, 2013-01-01 and 2014-07-05')).toEqual([
+  deepEqual(regex.capturesAll('2012-03-14, 2013-01-01 and 2014-07-05'), [
     {
       get: [
         { value: '2012-03-14', start: 0, end: 10 },
@@ -207,98 +209,98 @@ test(`RRegex::capturesAll`, () => {
 
 test(`RRegex::replace`, () => {
   const regex = new RRegex('a')
-  expect(regex.replace('abcabcabc', 'z')).toEqual('zbcabcabc')
-  expect(regex.replace('defdefdef', 'z')).toEqual('defdefdef')
+  deepEqual(regex.replace('abcabcabc', 'z'), 'zbcabcabc')
+  deepEqual(regex.replace('defdefdef', 'z'), 'defdefdef')
 
   {
     const re = new RRegex('[^01]+')
-    expect(re.replace('1078910', '')).toEqual('1010')
+    deepEqual(re.replace('1078910', ''), '1010')
   }
 
   {
     const re = new RRegex('(?P<last>[^,\\s]+),\\s+(?P<first>\\S+)')
     const result = re.replace('Springsteen, Bruce', '$first $last')
-    expect(result).toEqual('Bruce Springsteen')
+    deepEqual(result, 'Bruce Springsteen')
   }
 
   {
     const re = new RRegex('(?P<first>\\w+)\\s+(?P<second>\\w+)')
     const result = re.replace("deep fried", "${first}_$second");
-    expect(result).toEqual('deep_fried')
+    deepEqual(result, 'deep_fried')
   }
 })
 
 test(`RRegex::replaceAll`, () => {
   const regex = new RRegex('a')
-  expect(regex.replaceAll('abcabcabc', 'z')).toEqual('zbczbczbc')
-  expect(regex.replaceAll('defdefdef', 'z')).toEqual('defdefdef')
+  deepEqual(regex.replaceAll('abcabcabc', 'z'), 'zbczbczbc')
+  deepEqual(regex.replaceAll('defdefdef', 'z'), 'defdefdef')
 })
 
 test(`RRegex::replacen`, () => {
   const regex = new RRegex('a')
-  expect(regex.replacen('abcabcabc', 2, 'z')).toEqual('zbczbcabc')
-  expect(regex.replacen('defdefdef', 2, 'z')).toEqual('defdefdef')
+  deepEqual(regex.replacen('abcabcabc', 2, 'z'), 'zbczbcabc')
+  deepEqual(regex.replacen('defdefdef', 2, 'z'), 'defdefdef')
 })
 
 test(`RRegex::split`, () => {
   const regex = new RRegex('a')
-  expect(regex.split('abcabcabc')).toEqual(['', 'bc', 'bc', 'bc'])
-  expect(regex.split('defdefdef')).toEqual(['defdefdef'])
+  deepEqual(regex.split('abcabcabc'), ['', 'bc', 'bc', 'bc'])
+  deepEqual(regex.split('defdefdef'), ['defdefdef'])
 
   const re = new RRegex('[ \\t]+')
   const fields = re.split('a b \t  c\td    e');
-  expect(fields).toEqual(['a', 'b', 'c', 'd', 'e']);
+  deepEqual(fields, ['a', 'b', 'c', 'd', 'e']);
 })
 
 test(`RRegex::splitn`, () => {
   const regex = new RRegex(',')
-  expect(regex.splitn('a,b,c', 0)).toEqual([])
-  expect(regex.splitn('a,b,c', 1)).toEqual(['a,b,c'])
-  expect(regex.splitn('a,b,c', 2)).toEqual(['a', 'b,c'])
-  expect(regex.splitn('a,b,c', 3)).toEqual(['a', 'b', 'c'])
-  expect(regex.splitn('a,b,c', 4)).toEqual(['a', 'b', 'c'])
-  expect(regex.splitn('a,b,c', 5)).toEqual(['a', 'b', 'c'])
-  expect(regex.splitn('abc', 0)).toEqual([])
-  expect(regex.splitn('abc', 1)).toEqual(['abc'])
-  expect(regex.splitn('abc', 2)).toEqual(['abc'])
-  expect(regex.splitn('abc', 3)).toEqual(['abc'])
+  deepEqual(regex.splitn('a,b,c', 0), [])
+  deepEqual(regex.splitn('a,b,c', 1), ['a,b,c'])
+  deepEqual(regex.splitn('a,b,c', 2), ['a', 'b,c'])
+  deepEqual(regex.splitn('a,b,c', 3), ['a', 'b', 'c'])
+  deepEqual(regex.splitn('a,b,c', 4), ['a', 'b', 'c'])
+  deepEqual(regex.splitn('a,b,c', 5), ['a', 'b', 'c'])
+  deepEqual(regex.splitn('abc', 0), [])
+  deepEqual(regex.splitn('abc', 1), ['abc'])
+  deepEqual(regex.splitn('abc', 2), ['abc'])
+  deepEqual(regex.splitn('abc', 3), ['abc'])
 
   const re = new RRegex('\\W+')
   const fields = re.splitn('Hey! How are you?', 3)
-  expect(fields).toEqual(['Hey', 'How', 'are you?'])
+  deepEqual(fields, ['Hey', 'How', 'are you?'])
 })
 
 test(`RRegex::shortestMatch`, () => {
   const regex = new RRegex('a')
-  expect(regex.shortestMatch('abcabcabc')).toEqual(1)
-  expect(regex.shortestMatch('bcabcabc')).toEqual(3)
-  expect(regex.shortestMatch('cabcabc')).toEqual(2)
-  expect(regex.shortestMatch('defdefdef')).toEqual(undefined)
+  deepEqual(regex.shortestMatch('abcabcabc'), 1)
+  deepEqual(regex.shortestMatch('bcabcabc'), 3)
+  deepEqual(regex.shortestMatch('cabcabc'), 2)
+  deepEqual(regex.shortestMatch('defdefdef'), undefined)
 
   const text = 'aaaaa'
   const pos = new RRegex('a+')
-  expect(pos.shortestMatch(text)).toEqual(1)
+  deepEqual(pos.shortestMatch(text), 1)
 })
 
 test(`RRegex::shortestMatchAt`, () => {
   const regex = new RRegex('a')
-  expect(regex.shortestMatchAt('abcabca', 0)).toEqual(1)
-  expect(regex.shortestMatchAt('abcabca', 1)).toEqual(4)
-  expect(regex.shortestMatchAt('abcabca', 2)).toEqual(4)
-  expect(regex.shortestMatchAt('abcabca', 3)).toEqual(4)
-  expect(regex.shortestMatchAt('abcabca', 4)).toEqual(7)
-  expect(regex.shortestMatchAt('abcabca', 5)).toEqual(7)
-  expect(regex.shortestMatchAt('abcabca', 6)).toEqual(7)
-  expect(regex.shortestMatchAt('abcabca', 7)).toEqual(undefined)
-  expect(regex.shortestMatchAt('abcabca', 100)).toEqual(undefined)
-  expect(regex.shortestMatchAt('defdefdef', 0)).toEqual(undefined)
-  expect(regex.shortestMatchAt('defdefdef', 1)).toEqual(undefined)
-  expect(regex.shortestMatchAt('defdefdef', 2)).toEqual(undefined)
+  deepEqual(regex.shortestMatchAt('abcabca', 0), 1)
+  deepEqual(regex.shortestMatchAt('abcabca', 1), 4)
+  deepEqual(regex.shortestMatchAt('abcabca', 2), 4)
+  deepEqual(regex.shortestMatchAt('abcabca', 3), 4)
+  deepEqual(regex.shortestMatchAt('abcabca', 4), 7)
+  deepEqual(regex.shortestMatchAt('abcabca', 5), 7)
+  deepEqual(regex.shortestMatchAt('abcabca', 6), 7)
+  deepEqual(regex.shortestMatchAt('abcabca', 7), undefined)
+  deepEqual(regex.shortestMatchAt('abcabca', 100), undefined)
+  deepEqual(regex.shortestMatchAt('defdefdef', 0), undefined)
+  deepEqual(regex.shortestMatchAt('defdefdef', 1), undefined)
+  deepEqual(regex.shortestMatchAt('defdefdef', 2), undefined)
 })
 
 test('regex_syntax::hir::Empty', () => {
   const regex = new RRegex('')
-  expect(regex.syntax()).toEqual({
+  deepEqual(regex.syntax(), {
     "@name": "regex_syntax::hir::Hir",
     "@type": "struct",
     "kind": {
@@ -311,7 +313,7 @@ test('regex_syntax::hir::Empty', () => {
 
 test('regex_syntax::hir::Literal', () => {
   const regex = new RRegex('abc')
-  expect(regex.syntax()).toEqual({
+  deepEqual(regex.syntax(), {
     "@name": "regex_syntax::hir::Hir",
     "@type": "struct",
     "kind": {
@@ -335,7 +337,7 @@ test('regex_syntax::hir::Literal', () => {
 
 test('regex_syntax::hir::Class', () => {
   const unicode = new RRegex('\\d')
-  expect(unicode.syntax()).toEqual(
+  deepEqual(unicode.syntax(),
     {
       "@name": "regex_syntax::hir::Hir",
       "@type": "struct",
@@ -811,7 +813,7 @@ test('regex_syntax::hir::Class', () => {
   )
 
   const bytes = new RRegex('(?-u)\\d')
-  expect(bytes.syntax()).toEqual({
+  deepEqual(bytes.syntax(), {
     "@name": "regex_syntax::hir::Hir",
     "@type": "struct",
     "kind": {
@@ -847,7 +849,7 @@ test('regex_syntax::hir::Class', () => {
 
 test('regex_syntax::hir::Look', () => {
   const regex = new RRegex('^$')
-  expect(regex.syntax()).toEqual({
+  deepEqual(regex.syntax(), {
     "@name": "regex_syntax::hir::Hir",
     "@type": "struct",
     "kind": {
@@ -896,7 +898,7 @@ test('regex_syntax::hir::Look', () => {
 
 test('regex_syntax::hir::Repetition', () => {
   const oneOrMore = new RRegex('a+')
-  expect(oneOrMore.syntax()).toEqual({
+  deepEqual(oneOrMore.syntax(), {
     "@name": "regex_syntax::hir::Hir",
     "@type": "struct",
     "kind": {
@@ -932,7 +934,7 @@ test('regex_syntax::hir::Repetition', () => {
   })
 
   const betweenTwoAndFour = new RRegex('a{2,4}')
-  expect(betweenTwoAndFour.syntax()).toEqual({
+  deepEqual(betweenTwoAndFour.syntax(), {
     "@name": "regex_syntax::hir::Hir",
     "@type": "struct",
     "kind": {
@@ -970,7 +972,7 @@ test('regex_syntax::hir::Repetition', () => {
 
 test('regex_syntax::hir::Capture', () => {
   const regex = new RRegex('(?<test>a)')
-  expect(regex.syntax()).toEqual({
+  deepEqual(regex.syntax(), {
     "@name": "regex_syntax::hir::Hir",
     "@type": "struct",
     "kind": {
@@ -1008,7 +1010,7 @@ test('regex_syntax::hir::Capture', () => {
 
 test('regex_syntax -> Empty character class', () => {
   const regex = new RRegex('[a&&b]')
-  expect(regex.syntax()).toEqual({
+  deepEqual(regex.syntax(), {
     "@name": "regex_syntax::hir::Hir",
     "@type": "struct",
     "kind": {
@@ -1035,8 +1037,8 @@ test('regex_syntax -> Empty character class', () => {
 
 test(`RRegexSet::isMatch`, () => {
   let set = new RRegexSet(['\\w+', '\\d+'])
-  expect(set.isMatch('foo')).toEqual(true)
-  expect(set.isMatch('☃')).toEqual(false)
+  deepEqual(set.isMatch('foo'), true)
+  deepEqual(set.isMatch('☃'), false)
 })
 
 test(`RRegexSet::matches`, () => {
@@ -1049,33 +1051,33 @@ test(`RRegexSet::matches`, () => {
     'barfoo',
     'foobar',
   ])
-  expect(set.matches('foobar')).toEqual([0, 2, 3, 4, 6])
+  deepEqual(set.matches('foobar'), [0, 2, 3, 4, 6])
 })
 
 test("Match -> UTF-8 (äöü)", () => {
   const re = new RRegex("ä")
   const m = re.find("äöü") // { start: 0, end: 2 }
-  expect("äöü".slice(m.start, m.end)).toEqual("äö")
+  deepEqual("äöü".slice(m.start, m.end), "äö")
 
   const buff = new TextEncoder().encode("äöü")
   const slice = buff.slice(m.start, m.end)
-  expect(new TextDecoder().decode(slice)).toEqual("ä")
+  deepEqual(new TextDecoder().decode(slice), "ä")
 })
 
 test("Match -> Greek (αβγδ)", () => {
   const re = new RRegex("\\p{Greek}+");
   const hay = "Greek: αβγδ";
   const m = re.find(hay);
-  expect(m.start).toEqual(7);
-  expect(m.end).toEqual(15);
-  expect(m.value).toEqual("αβγδ");
+  deepEqual(m.start, 7);
+  deepEqual(m.end, 15);
+  deepEqual(m.value, "αβγδ");
 })
 
 test("Captures -> toady", () => {
   const re = new RRegex("(?<first>\\w)(\\w)(?:\\w)\\w(?<last>\\w)");
   const caps = re.captures("toady");
-  expect(caps.get[0].value).toEqual("toady");
-  expect(caps.name["first"].value).toEqual("t");
-  expect(caps.get[2].value).toEqual("o");
-  expect(caps.name["last"].value).toEqual("y");
+  deepEqual(caps.get[0].value, "toady");
+  deepEqual(caps.name["first"].value, "t");
+  deepEqual(caps.get[2].value, "o");
+  deepEqual(caps.name["last"].value, "y");
 })
