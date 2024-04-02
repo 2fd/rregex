@@ -50,9 +50,6 @@ cp lib_nodejs/rregex.d.ts lib/commonjs.d.ts
 cp lib_no_modules/rregex.js lib/standalone.js
 cp lib_no_modules/rregex.d.ts lib/standalone.d.ts
 
-cp lib_deno/rregex.js lib/mod.js
-cp lib_deno/rregex.d.ts lib/mod.d.ts
-
 cp lib_bundler/rregex.js lib/bundler.mjs
 cp lib_bundler/rregex_bg.js lib/bundler_bg.mjs
 cp lib_bundler/rregex.d.ts lib/bundler.d.ts
@@ -71,9 +68,6 @@ replace 's/_bg.wasm/rregex.wasm/g' lib/standalone.js
 
 replace 's/rregex_bg.wasm/rregex.wasm/g' lib/bundler.mjs
 replace 's/rregex_bg.js/bundler_bg.mjs/g' lib/bundler.mjs
-
-replace 's/rregex_bg.wasm/rregex.wasm/g' lib/mod.js
-replace 's/__wbindgen_placeholder__/wbg/g' lib/mod.js
 
 replace 's/rregex_bg.wasm/rregex.wasm/g' lib/esm.mjs
 replace 's/__wbindgen_placeholder__/wbg/g' lib/esm.mjs
