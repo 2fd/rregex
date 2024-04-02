@@ -1,0 +1,14 @@
+{
+  "name": "@rregex/rregex",
+  "version": "0.0.0-development",
+  "exports": "./lib/esm.mjs",
+  "publish": {
+    "include": [
+      "LICENSE",
+      "README.md",
+      "lib/rregex.wasm",
+      "lib/rregex.wasm.d.ts",
+      "lib/esm.d.ts"
+    ]
+  }
+}

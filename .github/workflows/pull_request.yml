@@ -16,29 +16,122 @@ on:
       - 1.0.x
 
 jobs:
-  release:
+  build:
     runs-on: ubuntu-20.04
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: node.js 20
+      - name: Run actions/setup-node@v4
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: "20"
           registry-url: https://registry.npmjs.org/
 
-      - name: setup
-        run: bash ./bin/install.sh
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
       - name: installing
         run: npm ci
+
+      - name: setup
+        run: npm run setup
 
       - name: testing wasm
         run: npm run test:rs -- --node
 
       - name: building
-        run: bash ./bin/build.sh
+        run: npm run build
 
-      - name: testing builded files
-        run: npm run test:ts
+      - uses: actions/upload-artifact@master
+        with:
+          name: lib
+          path: lib/
+
+  test_node:
+    runs-on: ubuntu-20.04
+
+    needs: build
+
+    strategy:
+      matrix:
+        version: ["20", "21"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run actions/setup-node@v4 (${{ matrix.version }})
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.version }}
+          registry-url: https://registry.npmjs.org/
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: lib
+          path: lib
+
+      - run: node lib/commonjs.cjs
+      - run: node lib/esm.mjs
+      - run: node --test test/node.test.cjs
+      - run: node --test test/node.test.mjs
+
+  test_bun:
+    runs-on: ubuntu-20.04
+
+    needs: build
+
+    strategy:
+      matrix:
+        version: ["1.0", "1.1"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run oven-sh/setup-bun@v1 (${{ matrix.version }})
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: ${{ matrix.version }}
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: lib
+          path: lib
+
+      - run: bun lib/commonjs.cjs
+      - run: bun lib/esm.mjs
+      - run: bun test test/bun.test.cjs
+      - run: bun test test/bun.test.mjs
+
+  test_deno:
+    runs-on: ubuntu-20.04
+
+    needs: build
+
+    strategy:
+      matrix:
+        version: ["v1.x"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run denoland/setup-deno@v1 (${{ matrix.version }})
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: ${{ matrix.version }}
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: lib
+          path: lib
+
+      - run: deno run --allow-read=lib/rregex.wasm lib/esm.mjs
+
+      - run: deno test --allow-read=lib/rregex.wasm test/deno.test.mjs
