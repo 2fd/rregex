@@ -16,20 +16,16 @@ on:
       - 1.0.x
 
 jobs:
-  node:
+  build:
     runs-on: ubuntu-20.04
-
-    strategy:
-      matrix:
-        node: [20, 21]
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: node.js ${{ matrix.node }}
+      - name: node.js 20
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node }}
+          node-version: 20
           registry-url: https://registry.npmjs.org/
 
       - name: installing
@@ -44,5 +40,85 @@ jobs:
       - name: building
         run: npm run build
 
-      - name: testing builded files
+      - uses: actions/upload-artifact@master
+        with:
+          name: build
+          path: lib/
+
+  test_node:
+    runs-on: ubuntu-20.04
+
+    needs: build
+
+    strategy:
+      matrix:
+        version: [20, 21]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: node.js ${{ matrix.version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.version }}
+          registry-url: https://registry.npmjs.org/
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: build
+
+      - name: checking builded files
+        run: node lib/commonjs.cjs
+
+      - name: running tests
         run: npm run test:ts
+
+  test_bun:
+    runs-on: ubuntu-20.04
+
+    needs: build
+
+    strategy:
+      matrix:
+        version: [1.0, 1.1]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: bun.js ${{ matrix.version }}
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: ${{ matrix.version }}
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: build
+
+      - name: checking builded files
+        run: bun lib/commonjs.cjs
+
+      - name: testing builded files
+        run: bun test test/bun.test.js
+
+  test_deno:
+    runs-on: ubuntu-20.04
+
+    needs: build
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: deno.js
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.x
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: build
+
+      - name: checking builded files
+        run: deno run --allow-read=lib/rregex.wasm lib/mod.js
+
+      - name: testing builded files
+        run: deno test --allow-read=lib/rregex.wasm test/deno.test.js
