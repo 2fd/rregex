@@ -58,16 +58,16 @@ cp lib_bundler/rregex_bg.js lib/bundler_bg.mjs
 cp lib_bundler/rregex.d.ts lib/bundler.d.ts
 
 echo "  🔗  Fixing references..."
-replace 's/rregex_bg.wasm/rregex.wasm/g' lib/browser.js
-
-replace 's/rregex_bg.wasm/rregex.wasm/g' lib/mod.js
-replace 's/__wbindgen_placeholder__/wbg/g' lib/mod.js
+replace 's/rregex_bg.wasm/rregex.wasm/g' lib/web.js
 
 replace 's/rregex_bg.wasm/rregex.wasm/g' lib/commonjs.cjs
 replace 's/__wbindgen_placeholder__/wbg/g' lib/commonjs.cjs
 
 replace 's/\\\.js\$/standalone\\.js$/g' lib/standalone.js
 replace 's/_bg.wasm/rregex.wasm/g' lib/standalone.js
+
+replace 's/rregex_bg.wasm/rregex.wasm/g' lib/mod.js
+replace 's/__wbindgen_placeholder__/wbg/g' lib/mod.js
 
 replace 's/rregex_bg.wasm/rregex.wasm/g' lib/bundler.mjs
 replace 's/rregex_bg.js/bundler_bg.mjs/g' lib/bundler.mjs
