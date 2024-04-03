@@ -1,13 +1,16 @@
 {
   "name": "rregex",
   "version": "0.0.0-development",
-  "description": "Rust Regex binding for Javascript",
+  "description": "A dependency-free WebAssembly build of Rust Regex for Javascript",
   "private": false,
   "type": "module",
   "main": "./lib/commonjs.cjs",
   "module": "./lib/esm.mjs",
   "browser": "./lib/web.js",
   "types": "./lib/types.d.ts",
+  "publishConfig": {
+    "provenance": true
+  },
   "devDependencies": {
     "@semantic-release/exec": "^6.0.3",
     "concurrently": "^8.2.2",

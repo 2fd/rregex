@@ -1,6 +1,7 @@
 {
   "name": "@rregex/rregex",
   "version": "0.0.0-development",
+  "description": "A dependency-free WebAssembly build of Rust Regex for Javascript",
   "exports": "./lib/esm.mjs",
   "publish": {
     "include": [

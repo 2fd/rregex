@@ -140,8 +140,10 @@ jobs:
     runs-on: ubuntu-20.04
 
     permissions:
-      contents: write
-      id-token: write # The OIDC ID token is used for authentication with JSR.
+      contents: write # to be able to publish a GitHub release
+      issues: write # to be able to comment on released issues
+      pull-requests: write # to be able to comment on released pull requests
+      id-token: write # to enable use of OIDC for npm provenance
 
     needs:
       - test_node
