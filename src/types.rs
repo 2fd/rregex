@@ -749,7 +749,7 @@ export type LookWordUnicodeNegateVariant = {
   '@type': 'enum'
   '@name': 'regex_syntax::hir:Look'
   '@variant': 'WordUnicodeNegate'
-
+}
 
 /**
  * Match the start of an ASCII-only word boundary. That is, this matches a

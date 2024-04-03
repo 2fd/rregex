@@ -92,19 +92,19 @@
           "assets": [
             {
               "path": "lib/standalone.js",
-              "label": "js"
+              "label": "standalone.js"
             },
             {
               "path": "lib/esm.mjs",
-              "label": "esm"
+              "label": "esm.js"
             },
             {
               "path": "lib/esm.d.ts",
-              "label": "typescript"
+              "label": "esm.d.ts"
             },
             {
               "path": "lib/rregex.wasm",
-              "label": "wasm"
+              "label": "rregex.wasm"
             }
           ]
         }
@@ -112,7 +112,7 @@
       [
         "@semantic-release/exec",
         {
-          "publishCmd": "node bin/jsr.mjs ${nextRelease.version} && npx jsr publish"
+          "publishCmd": "node bin/jsr.mjs ${nextRelease.version} && npx jsr publish --allow-dirty"
         }
       ]
     ]

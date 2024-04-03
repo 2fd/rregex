@@ -6,8 +6,10 @@
     "include": [
       "LICENSE",
       "README.md",
+      "jsr.json",
       "lib/rregex.wasm",
       "lib/rregex.wasm.d.ts",
+      "lib/esm.mjs",
       "lib/esm.d.ts"
     ]
   }
