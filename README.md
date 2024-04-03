@@ -1,6 +1,6 @@
 # rregex
 
-A WebAssembly build of [Rust Regex](https://docs.rs/regex/latest/regex/) for Javascript
+A dependency-free WebAssembly build of [Rust Regex](https://docs.rs/regex/latest/regex/) for Javascript
 
 ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/2fd/rregex/release.yml?branch=master) ![GitHub Release](https://img.shields.io/github/v/release/2fd/rregex) ![NPM Version](https://img.shields.io/npm/v/rregex)
 ![JSR Version](https://img.shields.io/jsr/v/%40rregex/rregex)
