@@ -3,7 +3,7 @@
 A dependency-free WebAssembly build of [Rust Regex](https://docs.rs/regex/latest/regex/) for Javascript
 
 ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/2fd/rregex/release.yml?branch=master) ![GitHub Release](https://img.shields.io/github/v/release/2fd/rregex) ![NPM Version](https://img.shields.io/npm/v/rregex)
- [![JSR](https://jsr.io/badges/@rregex/rregex)](https://jsr.io/@rregex/rregex)
+[![JSR](https://jsr.io/badges/@rregex/rregex)](https://jsr.io/@rregex/rregex)
 
 > Note: this project is not intended to be used in production jet
 
@@ -47,16 +47,15 @@ Rust has a powerful Regex library with a lot of features that don't exists en th
 
 This package includes builds for multiple runtimes
 
-| Runtime            | File                                            |
-| ------------------ | ----------------------------------------------- |
-| Node.js (esm)      | [`lib/esm.mjs` (default)](./test/node.test.mjs) |
-| Node.js (commonjs) | [`lib/commonjs.cjs`](./test/node.test.cjs)      |
-| Deno               | [`lib/esm.mjs`](./test/deno.test.mjs)           |
-| Bun                | [`lib/esm.mjs`](./test/bun.test.mjs)            |
-| Cloudflare Workers | TODO                                            |
-| Browser            | TODO                                            |
-| Standalone         | TODO                                            |
-| Typescript         | `lib/types.d.ts`                                |
+| Runtime            | Import                                               |
+| ------------------ | ---------------------------------------------------- |
+| Node.js (esm)      | `import { RRegex, RRegexSet } from 'rregex'`         |
+| Node.js (commonjs) | `const { RRegex, RRegexSet } = require('rregex')`    |
+| Deno               | `import { RRegex, RRegexSet } from '@rregex/rregex'` |
+| Bun                | `import { RRegex, RRegexSet } from '@rregex/rregex'` |
+| Cloudflare Workers | TODO                                                 |
+| Browser            | TODO                                                 |
+| Standalone         | TODO                                                 |
 
 ## Known Issues
 
