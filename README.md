@@ -51,8 +51,8 @@ This package includes builds for multiple runtimes
 | ------------------ | ------------------------------------------------------- | ---------- |
 | Node.js (esm)      | `import { RRegex, RRegexSet } from 'rregex'`            | `*`        |
 | Node.js (commonjs) | `const { RRegex, RRegexSet } = require('rregex')`       | `*`        |
-| Deno               | `import { RRegex, RRegexSet } from '@rregex/rregex'`    | `>=1.10.7` |
-| Bun                | `import { RRegex, RRegexSet } from '@rregex/rregex'`    | `>=1.10.7` |
+| Deno               | `import { RRegex, RRegexSet } from '@rregex/rregex'`    | `>=1.10.8` |
+| Bun                | `import { RRegex, RRegexSet } from '@rregex/rregex'`    | `>=1.10.8` |
 | Cloudflare Workers | `import { RRegex, RRegexSet } from 'rregex/lib/cf.mjs'` | `>=1.10.8` |
 | Browser            | TODO                                                    |            |
 | Standalone         | TODO                                                    |            |
