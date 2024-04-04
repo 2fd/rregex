@@ -47,15 +47,15 @@ Rust has a powerful Regex library with a lot of features that don't exists en th
 
 This package includes builds for multiple runtimes
 
-| Runtime            | Import                                               |
-| ------------------ | ---------------------------------------------------- |
-| Node.js (esm)      | `import { RRegex, RRegexSet } from 'rregex'`         |
-| Node.js (commonjs) | `const { RRegex, RRegexSet } = require('rregex')`    |
-| Deno               | `import { RRegex, RRegexSet } from '@rregex/rregex'` |
-| Bun                | `import { RRegex, RRegexSet } from '@rregex/rregex'` |
-| Cloudflare Workers | TODO                                                 |
-| Browser            | TODO                                                 |
-| Standalone         | TODO                                                 |
+| Runtime            | Import                                                  | version    |
+| ------------------ | ------------------------------------------------------- | ---------- |
+| Node.js (esm)      | `import { RRegex, RRegexSet } from 'rregex'`            | `*`        |
+| Node.js (commonjs) | `const { RRegex, RRegexSet } = require('rregex')`       | `*`        |
+| Deno               | `import { RRegex, RRegexSet } from '@rregex/rregex'`    | `>=1.10.7` |
+| Bun                | `import { RRegex, RRegexSet } from '@rregex/rregex'`    | `>=1.10.7` |
+| Cloudflare Workers | `import { RRegex, RRegexSet } from 'rregex/lib/cf.mjs'` | `>=1.10.8` |
+| Browser            | TODO                                                    |            |
+| Standalone         | TODO                                                    |            |
 
 ## Known Issues
 

@@ -25,5 +25,5 @@ function append(path, data) {
 append(`./lib_web/rregex.d.ts`, `export const metadata: ${metadata}`)
 append(`./lib_web/rregex.js`, `export const metadata = ${metadata}`)
 append(`./lib_deno/rregex.js`, `export const metadata = ${metadata}`)
-append(`./lib_bundler/rregex.js`, `export const metadata = ${metadata}`)
+append(`./lib_cf/cf.mjs`, `export const metadata = ${metadata}`)
 append(`./lib_nodejs/commonjs.cjs`, `module.exports.metadata = ${metadata}`)
