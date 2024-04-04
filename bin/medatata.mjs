@@ -23,9 +23,9 @@ function append(path, data) {
 }
 
 append(`./lib_web/rregex.d.ts`, `/** Build metadata */\nexport const metadata: ${metadata}`)
-append(`./lib_nodejs/rregex.d.ts`, `/** Build metadata */export const metadata: ${metadata}`)
-append(`./lib_no_modules/rregex.d.ts`, `/** Build metadata */export const metadata: ${metadata}`)
-append(`./lib_web/rregex.js`, `export const metadata = ${metadata}`)
-append(`./lib_deno/rregex.js`, `export const metadata = ${metadata}`)
-append(`./lib_cf/cf.mjs`, `export const metadata = ${metadata}`)
-append(`./lib_nodejs/commonjs.cjs`, `module.exports.metadata = ${metadata}`)
+append(`./lib_nodejs/rregex.d.ts`, `/** Build metadata */\nexport const metadata: ${metadata}`)
+append(`./lib_no_modules/rregex.d.ts`, `/** Build metadata */\nexport const metadata: ${metadata}`)
+append(`./lib_web/rregex.js`, `/** Build metadata */\nexport const metadata = ${metadata}`)
+append(`./lib_deno/rregex.js`, `/** Build metadata */\nexport const metadata = ${metadata}`)
+append(`./lib_cf/cf.mjs`, `/** Build metadata */\nexport const metadata = ${metadata}`)
+append(`./lib_nodejs/commonjs.cjs`, `/** Build metadata */\nmodule.exports.metadata = ${metadata}`)
