@@ -115,13 +115,17 @@ jobs:
 
     needs: build
 
+    strategy:
+      matrix:
+        version: ["1.x"]
+
     steps:
       - uses: actions/checkout@v4
 
-      - name: Run denoland/setup-deno@v1 (1.x)
+      - name: Run denoland/setup-deno@v1 (${{ matrix.version }})
         uses: denoland/setup-deno@v1
         with:
-          deno-version: "v1.x"
+          deno-version: "v${{ matrix.version }}"
 
       - uses: actions/download-artifact@v4
         with:
@@ -136,6 +140,10 @@ jobs:
     runs-on: ubuntu-20.04
 
     needs: build
+
+    strategy:
+      matrix:
+        version: ["3.x"]
 
     steps:
       - uses: actions/checkout@v4
