@@ -1,0 +1,12 @@
+{
+  "name": "basic-bundle-nameless-bread-f79e",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "test": "bash setup.sh && npx workerd test config.capnp"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240403.0",
+    "wrangler": "^3.0.0"
+  }
+}

@@ -1,0 +1,7 @@
+name = "basic-bundle-nameless-bread-f79e"
+main = "cf.test.mjs"
+compatibility_date = "2024-03-29"
+workers_dev = true
+compatibility_flags = [
+  "nodejs_compat"
+]

@@ -117,7 +117,7 @@ jobs:
 
     strategy:
       matrix:
-        version: ["v1.x"]
+        version: ["1.x"]
 
     steps:
       - uses: actions/checkout@v4
@@ -125,7 +125,7 @@ jobs:
       - name: Run denoland/setup-deno@v1 (${{ matrix.version }})
         uses: denoland/setup-deno@v1
         with:
-          deno-version: ${{ matrix.version }}
+          deno-version: "v${{ matrix.version }}"
 
       - uses: actions/download-artifact@v4
         with:
@@ -135,3 +135,32 @@ jobs:
       - run: deno run --allow-read=lib/rregex.wasm lib/esm.mjs
 
       - run: deno test --allow-read=lib/rregex.wasm test/deno.test.mjs
+
+  test_cf:
+    runs-on: ubuntu-20.04
+
+    needs: build
+
+    strategy:
+      matrix:
+        version: ["3.x"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run actions/setup-node@v4
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          registry-url: https://registry.npmjs.org/
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: lib
+          path: lib
+
+      - run: npm ci
+        working-directory: ./test/cf
+
+      - run: npm test
+        working-directory: ./test/cf
