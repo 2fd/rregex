@@ -138,7 +138,7 @@ jobs:
 
       - run: deno test --allow-read=lib/rregex.wasm test/deno.test.mjs
 
-      - run: deno bench --allow-read=lib/rregex.wasm --allow-read=test/__data__/input-text.txt test/deno.bench.mjs
+      - run: deno bench --allow-read=. test/deno.bench.mjs
 
   test_cf:
     runs-on: ubuntu-20.04
