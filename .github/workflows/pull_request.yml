@@ -82,6 +82,7 @@ jobs:
       - run: node lib/esm.mjs
       - run: node --test test/node.test.cjs
       - run: node --test test/node.test.mjs
+      - run: node test/node.bench.mjs
 
   test_bun:
     runs-on: ubuntu-20.04
@@ -135,6 +136,8 @@ jobs:
       - run: deno run --allow-read=lib/rregex.wasm lib/esm.mjs
 
       - run: deno test --allow-read=lib/rregex.wasm test/deno.test.mjs
+
+      - run: deno bench --allow-read=lib/rregex.wasm test/deno.bench.mjs
 
   test_cf:
     runs-on: ubuntu-20.04
