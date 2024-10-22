@@ -5,9 +5,26 @@
   "private": false,
   "type": "module",
   "main": "./lib/commonjs.cjs",
+  "types": "./lib/commonjs.d.cts",
   "module": "./lib/esm.mjs",
   "browser": "./lib/web.js",
-  "types": "./lib/types.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "import": {
+        "types": "./lib/esm.d.ts",
+        "default": "./lib/esm.mjs"
+      },
+      "require": {
+        "types": "./lib/commonjs.d.cts",
+        "default": "./lib/commonjs.cjs"
+      },
+      "browser": {
+        "types": "./lib/web.d.ts",
+        "default": "./lib/web.js"
+      }
+    }
+  },
   "publishConfig": {
     "provenance": true
   },
