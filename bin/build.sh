@@ -59,7 +59,7 @@ cp lib_web/rregex_bg.wasm.d.ts lib/rregex.wasm.d.ts
 cp lib_cf/cf.mjs lib/cf.mjs
 
 cp lib_nodejs/rregex.js lib/commonjs.cjs
-cp lib_nodejs/rregex.d.ts lib/commonjs.d.ts
+cp lib_nodejs/rregex.d.ts lib/commonjs.d.cts
 
 cp lib_no_modules/rregex.js lib/standalone.js
 cp lib_no_modules/rregex.d.ts lib/standalone.d.ts
