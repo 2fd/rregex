@@ -629,6 +629,13 @@ test('regex_syntax::hir::Class', () => {
                   {
                     "@name": "regex_syntax::hir::ClassUnicodeRange",
                     "@type": "struct",
+                    "end": "𐵉",
+                    "len": 10,
+                    "start": "𐵀",
+                  },
+                  {
+                    "@name": "regex_syntax::hir::ClassUnicodeRange",
+                    "@type": "struct",
                     "end": "𑁯",
                     "len": 10,
                     "start": "𑁦",
@@ -692,6 +699,13 @@ test('regex_syntax::hir::Class', () => {
                   {
                     "@name": "regex_syntax::hir::ClassUnicodeRange",
                     "@type": "struct",
+                    "end": "𑛣",
+                    "len": 20,
+                    "start": "𑛐",
+                  },
+                  {
+                    "@name": "regex_syntax::hir::ClassUnicodeRange",
+                    "@type": "struct",
                     "end": "𑜹",
                     "len": 10,
                     "start": "𑜰",
@@ -709,6 +723,13 @@ test('regex_syntax::hir::Class', () => {
                     "end": "𑥙",
                     "len": 10,
                     "start": "𑥐",
+                  },
+                  {
+                    "@name": "regex_syntax::hir::ClassUnicodeRange",
+                    "@type": "struct",
+                    "end": "𑯹",
+                    "len": 10,
+                    "start": "𑯰",
                   },
                   {
                     "@name": "regex_syntax::hir::ClassUnicodeRange",
@@ -741,6 +762,13 @@ test('regex_syntax::hir::Class', () => {
                   {
                     "@name": "regex_syntax::hir::ClassUnicodeRange",
                     "@type": "struct",
+                    "end": "𖄹",
+                    "len": 10,
+                    "start": "𖄰",
+                  },
+                  {
+                    "@name": "regex_syntax::hir::ClassUnicodeRange",
+                    "@type": "struct",
                     "end": "𖩩",
                     "len": 10,
                     "start": "𖩠",
@@ -758,6 +786,20 @@ test('regex_syntax::hir::Class', () => {
                     "end": "𖭙",
                     "len": 10,
                     "start": "𖭐",
+                  },
+                  {
+                    "@name": "regex_syntax::hir::ClassUnicodeRange",
+                    "@type": "struct",
+                    "end": "𖵹",
+                    "len": 10,
+                    "start": "𖵰",
+                  },
+                  {
+                    "@name": "regex_syntax::hir::ClassUnicodeRange",
+                    "@type": "struct",
+                    "end": "𜳹",
+                    "len": 10,
+                    "start": "𜳰",
                   },
                   {
                     "@name": "regex_syntax::hir::ClassUnicodeRange",
@@ -786,6 +828,13 @@ test('regex_syntax::hir::Class', () => {
                     "end": "𞓹",
                     "len": 10,
                     "start": "𞓰",
+                  },
+                  {
+                    "@name": "regex_syntax::hir::ClassUnicodeRange",
+                    "@type": "struct",
+                    "end": "𞗺",
+                    "len": 10,
+                    "start": "𞗱",
                   },
                   {
                     "@name": "regex_syntax::hir::ClassUnicodeRange",
