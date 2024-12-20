@@ -38,7 +38,7 @@
   "scripts": {
     "setup": "./bin/install.sh",
     "build": "./bin/build.sh",
-    "test": "wasm-pack test --node && jest --passWithNoTests",
+    "test": "node --test test/node.test.mjs",
     "test:rs": "wasm-pack test",
     "semantic-release": "semantic-release"
   },
