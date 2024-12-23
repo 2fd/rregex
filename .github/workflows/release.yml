@@ -82,7 +82,7 @@ jobs:
 
     strategy:
       matrix:
-        version: ["20", "21"]
+        version: ["20", "22", "23"]
 
     steps:
       - uses: actions/checkout@v4
