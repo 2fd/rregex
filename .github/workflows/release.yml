@@ -152,6 +152,9 @@ jobs:
           name: lib
           path: lib
 
+      - run: deno install
+        if: ${{ matrix.version != '1.x' }}
+
       - run: deno run --allow-read=lib/rregex.wasm lib/esm.mjs
 
       - run: deno test --allow-read=lib/rregex.wasm test/deno.test.mjs
