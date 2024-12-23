@@ -121,13 +121,13 @@ jobs:
 
     strategy:
       matrix:
-        version: ["1.x"]
+        version: ["1.x", "2.x"]
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Run denoland/setup-deno@v1 (${{ matrix.version }})
-        uses: denoland/setup-deno@v1
+      - name: Run denoland/setup-deno@v2 (${{ matrix.version }})
+        uses: denoland/setup-deno@v2
         with:
           deno-version: "v${{ matrix.version }}"
 
