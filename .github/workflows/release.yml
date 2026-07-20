@@ -173,23 +173,29 @@ jobs:
 
     strategy:
       matrix:
-        version: ["3.x"]
+        version: ["4.x"]
 
     steps:
       - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
 
       - name: Run actions/setup-node@v4
         uses: actions/setup-node@v4
         with:
           node-version: "24"
           registry-url: https://registry.npmjs.org/
+          cache: pnpm
+          cache-dependency-path: test/cf/pnpm-lock.yaml
 
       - uses: actions/download-artifact@v4
         with:
           name: lib
           path: lib
 
-      - run: npm ci
+      - run: pnpm install --frozen-lockfile
         working-directory: ./test/cf
 
       - run: node --run test
