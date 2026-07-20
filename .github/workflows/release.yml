@@ -201,6 +201,10 @@ jobs:
 
     runs-on: ubuntu-24.04
 
+    environment:
+      name: release
+      url: ${{ steps.release_url.outputs.url }}
+
     permissions:
       contents: write # to be able to publish a GitHub release
       issues: write # to be able to comment on released issues
@@ -236,4 +240,13 @@ jobs:
       - run: node --run semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
+
+      - name: set release url
+        id: release_url
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          if [ "$version" = "0.0.0-development" ]; then
+            echo "url=https://www.npmjs.com/package/rregex" >> "$GITHUB_OUTPUT"
+          else
+            echo "url=https://www.npmjs.com/package/rregex/v/$version" >> "$GITHUB_OUTPUT"
+          fi
