@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
       - master
+      - 1.12.x
       - 1.11.x
       - 1.10.x
       - 1.9.x
@@ -20,6 +21,7 @@ on:
   push:
     branches:
       - master
+      - 1.12.x
       - 1.11.x
       - 1.10.x
       - 1.9.x
