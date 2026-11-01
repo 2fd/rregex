@@ -46,6 +46,14 @@ bindings() {
   mkdir -p lib
 }
 
+# tsdown.config.ts does not generate these declarations: same as core.d.mts
+bundle() {
+  pnpm exec tsdown --silent
+  for dts in core.d.cts commonjs.d.cts cf.d.mts; do
+    cp lib/core.d.mts "lib/$dts"
+  done
+}
+
 STARTED=$(now_ms)
 
 echo "  🦀  Compiling wasm..."
@@ -58,7 +66,7 @@ timed "wasm-bindgen" bindings
 echo "  🗜️   Optimizing wasm and 📦 bundling..."
 timed "wasm-opt" ./bin/wasm-opt.sh js/wasm/rregex_bg.wasm lib/rregex.wasm &
 WASM_OPT=$!
-timed "tsdown" pnpm exec tsdown --silent
+timed "tsdown" bundle
 wait "$WASM_OPT"
 
 TOTAL=$(($(now_ms) - STARTED))

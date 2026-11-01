@@ -2,6 +2,10 @@ import { defineConfig, type UserConfig } from "tsdown";
 
 // Every entry is one self-contained file in lib/ next to lib/rregex.wasm.
 // bin/build.sh generates js/wasm/ (wasm-bindgen glue and metadata) first.
+//
+// commonjs, core (cjs) and cf export exactly what core exports, so their
+// declarations are the same as core.d.mts: bin/build.sh copies it instead of
+// generating them (`dts: false`).
 const shared = {
   outDir: "lib",
   clean: false,
@@ -29,6 +33,7 @@ export default defineConfig([
     entry: { commonjs: "js/node.ts" },
     platform: "node",
     format: "cjs",
+    dts: false,
     outExtensions: ext(".cjs", ".d.cts"),
   },
   // Any runtime, the user loads the module
@@ -44,6 +49,7 @@ export default defineConfig([
     entry: { core: "js/core.ts" },
     platform: "neutral",
     format: "cjs",
+    dts: false,
     outExtensions: ext(".cjs", ".d.cts"),
   },
   // Browsers and bundlers
@@ -60,6 +66,7 @@ export default defineConfig([
     entry: { cf: "js/workerd.ts" },
     platform: "neutral",
     format: "esm",
+    dts: false,
     deps: { onlyBundle: false, neverBundle: [/\.wasm$/] },
     outExtensions: ext(".mjs", ".d.mts"),
   },
