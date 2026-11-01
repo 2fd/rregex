@@ -69,9 +69,15 @@ jobs:
         run: |
           pnpm install --frozen-lockfile
           node --run setup
+          # build.sh runs 4 wasm-pack builds in parallel: if the target is
+          # missing, their concurrent `rustup target add` calls collide
+          rustup target add wasm32-unknown-unknown
 
+      # build.sh does not stop on errors, so check that the lib is complete
       - name: building head
-        run: node --run build
+        run: |
+          node --run build
+          test -f lib/esm.mjs -a -f lib/rregex.wasm
 
       - name: building base
         working-directory: .base
@@ -81,6 +87,7 @@ jobs:
         run: |
           pnpm install --frozen-lockfile
           node --run build
+          test -f lib/esm.mjs -a -f lib/rregex.wasm
 
       - name: running benchmarks
         run: |
