@@ -52,9 +52,29 @@ This package includes builds for multiple runtimes
 | Node.js (commonjs) | `const { RRegex, RRegexSet } = require('rregex')`       | `*`        |
 | Deno               | `import { RRegex, RRegexSet } from '@rregex/rregex'`    | `>=1.10.8` |
 | Bun                | `import { RRegex, RRegexSet } from '@rregex/rregex'`    | `>=1.10.8` |
-| Cloudflare Workers | `import { RRegex, RRegexSet } from 'rregex/lib/cf.mjs'` | `>=1.10.8` |
-| Browser            | TODO                                                    |            |
-| Standalone         | TODO                                                    |            |
+| Cloudflare Workers | `import { RRegex, RRegexSet } from 'rregex'`            | `>=1.10.8` |
+| Browser            | `import init, { RRegex } from 'rregex/web'`             | `*`        |
+| Standalone         | `<script src=".../rregex/lib/standalone.js">`           | `*`        |
+| Any runtime        | `import { initSync, RRegex } from 'rregex/core'`        | `*`        |
+
+The Node.js, Deno, Bun and Cloudflare Workers builds load the WebAssembly module
+when you import them. The other builds do not: call `init()` or `initSync()`
+once before you use `RRegex` or `RRegexSet`.
+
+```ts
+// Browser: fetches `rregex.wasm` from the same directory as `web.js`
+import init, { RRegex } from "rregex/web";
+await init();
+
+// Standalone: exposes the global `rregex`
+await rregex.init();
+new rregex.RRegex("a+").isMatch("aaa");
+
+// Any runtime: you provide the module (bytes, `WebAssembly.Module` or a `Response`)
+import { init, initSync, RRegex } from "rregex/core";
+initSync({ module: wasmBytes });
+await init({ module_or_path: fetch(wasmUrl) });
+```
 
 ## Benchmarks
 

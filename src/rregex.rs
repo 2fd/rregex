@@ -139,7 +139,7 @@ impl RRegex {
     /// @see https://docs.rs/regex/latest/regex/struct.Regex.html#method.find
     /// @param {string} text - The string against which to match the regular expression
     /// @return {Match}
-    #[wasm_bindgen(skip_jsdoc)]
+    #[wasm_bindgen(skip_jsdoc, unchecked_return_type = "Match | undefined")]
     pub fn find(&self, text: &str) -> Result<JsValue> {
         self.find_at(text, 0)
     }
@@ -155,7 +155,7 @@ impl RRegex {
     /// @param {string} text - The string against which to match the regular expression
     /// @param {number} start - Zero-based index at which to start matching
     /// @returns {Match}
-    #[wasm_bindgen(skip_jsdoc, js_name = findAt)]
+    #[wasm_bindgen(skip_jsdoc, js_name = findAt, unchecked_return_type = "Match | undefined")]
     pub fn find_at(&self, text: &str, start: usize) -> Result<JsValue> {
         if start > text.len() {
             return Ok(JsValue::UNDEFINED);
@@ -187,7 +187,7 @@ impl RRegex {
     /// @see https://docs.rs/regex/latest/regex/struct.Regex.html#method.find_iter
     /// @param {string} text - The string against which to match the regular expression
     /// @returns {Match}
-    #[wasm_bindgen(skip_jsdoc, js_name = findAll)]
+    #[wasm_bindgen(skip_jsdoc, js_name = findAll, unchecked_return_type = "Match[]")]
     pub fn find_all(&self, text: &str) -> Result<JsValue> {
         let matches = js_sys::Array::new();
         for m in self.regex.find_iter(text) {
@@ -199,7 +199,7 @@ impl RRegex {
     /// Returns a list of the capture names in this regex.
     ///
     /// @see https://docs.rs/regex/latest/regex/struct.Regex.html#method.capture_names
-    #[wasm_bindgen(skip_jsdoc, js_name = captureNames)]
+    #[wasm_bindgen(skip_jsdoc, js_name = captureNames, unchecked_return_type = "(string | null)[]")]
     pub fn capture_names(&self) -> Vec<JsValue> {
         self.regex
             .capture_names()
@@ -256,7 +256,7 @@ impl RRegex {
     /// @see https://docs.rs/regex/latest/regex/struct.Regex.html#method.captures
     /// @param {string} text - The string against which to match the regular expression
     /// @returns {Captures|undefined}
-    #[wasm_bindgen(skip_jsdoc)]
+    #[wasm_bindgen(skip_jsdoc, unchecked_return_type = "Captures | undefined")]
     pub fn captures(&self, text: &str) -> Result<JsValue> {
         if let Some(captures) = self.regex.captures(text) {
             Match::captures(captures, self.regex.capture_names())
@@ -294,7 +294,7 @@ impl RRegex {
     /// @see https://docs.rs/regex/latest/regex/struct.Regex.html#method.captures_iter
     /// @param {string} text - The string against which to match the regular expression
     /// @returns {Captures[]}
-    #[wasm_bindgen(skip_jsdoc, js_name = capturesAll)]
+    #[wasm_bindgen(skip_jsdoc, js_name = capturesAll, unchecked_return_type = "Captures[]")]
     pub fn captures_all(&self, text: &str) -> Result<JsValue> {
         let names = self.regex.capture_names();
         let result = js_sys::Array::new();
@@ -474,7 +474,7 @@ impl RRegex {
     /// @see https://docs.rs/regex/latest/regex/struct.Regex.html#method.split
     /// @param {string} text - The string against which to match the regular expression
     /// @returns {string[]}
-    #[wasm_bindgen(skip_jsdoc)]
+    #[wasm_bindgen(skip_jsdoc, unchecked_return_type = "string[]")]
     pub fn split(&self, text: &str) -> Vec<String> {
         self.regex.split(text).map(|s| s.to_string()).collect()
     }
@@ -502,7 +502,7 @@ impl RRegex {
     /// @param {string} text - The string against which to match the regular expression
     /// @param {number} limit - Max number result elements
     /// @returns {string[]}
-    #[wasm_bindgen(skip_jsdoc)]
+    #[wasm_bindgen(skip_jsdoc, unchecked_return_type = "string[]")]
     pub fn splitn(&self, text: &str, limit: usize) -> Vec<String> {
         self.regex
             .splitn(text, limit)
@@ -567,6 +567,7 @@ impl RRegex {
 
     /// Returns the regular expression into a high level intermediate
     /// representation.
+    #[wasm_bindgen(unchecked_return_type = "Hir")]
     pub fn syntax(&self) -> Result<JsValue> {
         let mut parser = Parser::new();
         let hir = parser

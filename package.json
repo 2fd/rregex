@@ -14,19 +14,42 @@
   "exports": {
     "./package.json": "./package.json",
     ".": {
+      "workerd": {
+        "types": "./lib/cf.d.mts",
+        "default": "./lib/cf.mjs"
+      },
+      "browser": {
+        "types": "./lib/web.d.ts",
+        "default": "./lib/web.js"
+      },
       "import": {
-        "types": "./lib/esm.d.ts",
+        "types": "./lib/esm.d.mts",
         "default": "./lib/esm.mjs"
       },
       "require": {
         "types": "./lib/commonjs.d.cts",
         "default": "./lib/commonjs.cjs"
-      },
-      "browser": {
-        "types": "./lib/web.d.ts",
-        "default": "./lib/web.js"
       }
-    }
+    },
+    "./core": {
+      "import": {
+        "types": "./lib/core.d.mts",
+        "default": "./lib/core.mjs"
+      },
+      "require": {
+        "types": "./lib/core.d.cts",
+        "default": "./lib/core.cjs"
+      }
+    },
+    "./web": {
+      "types": "./lib/web.d.ts",
+      "default": "./lib/web.js"
+    },
+    "./cf": {
+      "types": "./lib/cf.d.mts",
+      "default": "./lib/cf.mjs"
+    },
+    "./lib/*": "./lib/*"
   },
   "publishConfig": {
     "provenance": true
@@ -34,10 +57,12 @@
   "devDependencies": {
     "@semantic-release/exec": "^6.0.3",
     "@types/node": "^22.10.2",
-    "concurrently": "^8.2.2",
+    "binaryen": "^132.0.0",
     "semantic-release": "^25.0.0",
     "tinybench": "^2.7.0",
-    "toml": "^3.0.0"
+    "toml": "^3.0.0",
+    "tsdown": "^0.23.4",
+    "typescript": "^6.0.3"
   },
   "scripts": {
     "setup": "./bin/install.sh",
@@ -140,8 +165,8 @@
               "label": "esm.js"
             },
             {
-              "path": "lib/esm.d.ts",
-              "label": "esm.d.ts"
+              "path": "lib/esm.d.mts",
+              "label": "esm.d.mts"
             },
             {
               "path": "lib/rregex.wasm",
