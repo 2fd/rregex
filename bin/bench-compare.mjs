@@ -142,16 +142,6 @@ const fmtTime = (ms) => {
 const fmtOps = (ms) => Math.round(1000 / ms).toLocaleString('en-US');
 const fmtDelta = (d) => `${d > 0 ? '+' : ''}${(d * 100).toFixed(1)}%`;
 const fmtBytes = (b) => `${(b / 1024).toFixed(1)} KiB`;
-const fmtTimes = (ratio) => {
-  if (ratio >= 100) return `${Math.round(ratio).toLocaleString('en-US')}×`;
-  if (ratio >= 10) return `${ratio.toFixed(1)}×`;
-  return `${ratio.toFixed(2)}×`;
-};
-/** head time / native time, as "2.80× slower" or "4.10× faster" */
-const fmtVsNative = (ratio) => {
-  if (ratio === null) return '—';
-  return ratio >= 1 ? `${fmtTimes(ratio)} slower` : `**${fmtTimes(1 / ratio)} faster**`;
-};
 const icon = { regression: '⚠️', improvement: '✅', unchanged: '➖' };
 const list = (items) =>
   items.length > 1 ? `${items.slice(0, -1).join(', ')} and ${items.at(-1)}` : items.join('');
@@ -180,16 +170,16 @@ if (regressions.length) {
   );
 }
 
-// summary: one Δ and one vs RegExp column per runtime
+// summary: one Δ column per runtime
 lines.push(
-  `| Benchmark | ${runtimes.map((r) => `${r.runtime}<br>Δ time | vs RegExp`).join(' | ')} |`,
-  `|:--|${runtimes.map(() => '--:|--:|').join('')}`,
+  `| Benchmark | ${runtimes.map((r) => `${r.runtime}<br>Δ time`).join(' | ')} |`,
+  `|:--|${runtimes.map(() => '--:|').join('')}`,
 );
 for (const name of names) {
   const cells = runtimes.map(({ results }) => {
     const r = results.find((result) => result.name === name);
-    if (!r) return '— | —';
-    return `${icon[r.status]} **${fmtDelta(r.delta)}** | ${fmtVsNative(r.vsNative)}`;
+    if (!r) return '—';
+    return `${icon[r.status]} **${fmtDelta(r.delta)}**`;
   });
   lines.push(`| \`${name}\` | ${cells.join(' | ')} |`);
 }
@@ -218,8 +208,8 @@ lines.push(`| \`rregex.wasm\` | ${fmtBytes(size.base)} | ${fmtBytes(size.head)} 
 lines.push('');
 lines.push(
   '<sub>Δ time is the median of the per-round head/base ratios (lower is better). ' +
-    'vs RegExp compares head with the equivalent native `RegExp` call in the same runtime ' +
-    '(median of the per-round ratios; `new` has no equivalent, `RegExp` compiles on first use). ' +
+    'RegExp is the time of the equivalent native `RegExp` call in the same runtime ' +
+    '(`new` has no equivalent, `RegExp` compiles on first use). ' +
     '± is the worst relative margin of error seen across rounds. ' +
     'Shared CI runners are noisy: re-run the job before you act on a small regression.</sub>',
 );
