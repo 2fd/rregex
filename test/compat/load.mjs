@@ -21,10 +21,11 @@ export async function loadTargets(libDir) {
   const web = await import(pathToFileURL(resolve(dir, 'web.js')).href);
   web.initSync({ module: wasm });
 
-  // `--target no-modules` defines a global `wasm_bindgen`; scope it so two
-  // builds can be loaded in the same realm (same `Object.prototype`).
+  // `standalone.js` defines a global: `rregex` since 2.0, `wasm_bindgen` before
+  // (`--target no-modules`). Scope it so two builds can be loaded in the same
+  // realm (same `Object.prototype`).
   const code = readFileSync(resolve(dir, 'standalone.js'), 'utf8');
-  const standalone = vm.runInThisContext(`(function () {\n${code}\nreturn wasm_bindgen;\n})()`, {
+  const standalone = vm.runInThisContext(`(function () {\n${code}\nreturn typeof rregex !== "undefined" ? rregex : wasm_bindgen;\n})()`, {
     filename: resolve(dir, 'standalone.js'),
   });
   standalone.initSync({ module: wasm });

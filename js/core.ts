@@ -10,6 +10,7 @@
 import initWasm, {
   initSync as initWasmSync,
   type InitInput,
+  type InitOutput,
   type SyncInitInput,
 } from "./wasm/rregex.js";
 
@@ -30,6 +31,15 @@ export interface InitSyncOptions {
 
 let initialized = false;
 
+/**
+ * The raw exports of the WebAssembly instance (`memory`, allocator, bindings),
+ * set by {@link init} and {@link initSync}. For tests and debugging only: it
+ * is not part of the public API and can change in any release.
+ *
+ * @internal
+ */
+export let __wasm: InitOutput | undefined;
+
 /** Returns `true` after the WebAssembly module has been instantiated. */
 export function isInitialized(): boolean {
   return initialized;
@@ -43,7 +53,7 @@ export function isInitialized(): boolean {
  */
 export function initSync(options: InitSyncOptions | SyncInitInput): void {
   const module = isOptions(options, "module") ? options.module : options;
-  initWasmSync({ module });
+  __wasm = initWasmSync({ module });
   initialized = true;
 }
 
@@ -52,7 +62,7 @@ export function initSync(options: InitSyncOptions | SyncInitInput): void {
  * successful call have no effect.
  */
 export async function init(options: InitOptions): Promise<void> {
-  await initWasm({ module_or_path: options.module_or_path });
+  __wasm = await initWasm({ module_or_path: options.module_or_path });
   initialized = true;
 }
 
