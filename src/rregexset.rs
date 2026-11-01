@@ -1,6 +1,6 @@
 use wasm_bindgen::prelude::*;
 
-type Result<T> = std::result::Result<T, serde_wasm_bindgen::Error>;
+type Result<T> = std::result::Result<T, JsError>;
 
 /// Match multiple (possibly overlapping) regular expressions in a single scan.
 /// A regex set corresponds to the union of two or more regular expressions.
@@ -40,13 +40,13 @@ impl RRegexSet {
         let mut patterns: Vec<String> = Vec::with_capacity(list.length() as usize);
         for (position, item) in list.iter().enumerate() {
           let pattern = item.as_string()
-            .ok_or(serde_wasm_bindgen::Error::new(format!("item in position {} is not a string", position)))?;
+            .ok_or_else(|| JsError::new(&format!("item in position {} is not a string", position)))?;
 
           patterns.push(pattern)
         };
 
         let regexes = regex::RegexSet::new(patterns)
-          .map_err(|err| serde_wasm_bindgen::Error::new(err.to_string()))?;
+          .map_err(|err| JsError::new(&err.to_string()))?;
 
         Ok(RRegexSet { regexes })
     }

@@ -1,12 +1,17 @@
-use std::convert::TryInto;
-
 use crate::types::Hir;
 use crate::types::Match;
 use regex_syntax::Parser;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsValue;
 
-type Result<T> = std::result::Result<T, serde_wasm_bindgen::Error>;
+// `Result` (rather than a bare `JsValue`) is kept on the search methods even where
+// they cannot fail: it is part of the wasm ABI exposed in the generated `.d.ts`
+// (`InitOutput`), which must stay identical.
+type Result<T> = std::result::Result<T, JsValue>;
+
+fn error(err: impl std::fmt::Display) -> JsValue {
+    JsError::new(&err.to_string()).into()
+}
 
 /// A compiled regular expression for matching Unicode strings.
 ///
@@ -60,7 +65,7 @@ impl RRegex {
     /// If an invalid expression is given, then an error is returned.
     #[wasm_bindgen(constructor)]
     pub fn new(re: &str) -> Result<RRegex> {
-        let r = regex::Regex::new(re).map_err(serde_wasm_bindgen::Error::new)?;
+        let r = regex::Regex::new(re).map_err(error)?;
 
         Ok(RRegex { regex: r })
     }
@@ -159,7 +164,7 @@ impl RRegex {
         let r = self.regex.find_at(text, start);
 
         match r {
-            Some(m) => Match::from(m).try_into(),
+            Some(m) => Ok(Match::from(m).into()),
             None => Ok(JsValue::UNDEFINED),
         }
     }
@@ -184,8 +189,11 @@ impl RRegex {
     /// @returns {Match}
     #[wasm_bindgen(skip_jsdoc, js_name = findAll)]
     pub fn find_all(&self, text: &str) -> Result<JsValue> {
-        let matches: Vec<Match> = self.regex.find_iter(text).map(Match::from).collect();
-        serde_wasm_bindgen::to_value(&matches)
+        let matches = js_sys::Array::new();
+        for m in self.regex.find_iter(text) {
+            matches.push(&JsValue::from(Match::from(m)));
+        }
+        Ok(matches.into())
     }
 
     /// Returns a list of the capture names in this regex.
@@ -253,7 +261,7 @@ impl RRegex {
         if let Some(captures) = self.regex.captures(text) {
             Match::captures(captures, self.regex.capture_names())
         } else {
-            Ok(JsValue::undefined())
+            Ok(JsValue::UNDEFINED)
         }
     }
 
@@ -563,9 +571,9 @@ impl RRegex {
         let mut parser = Parser::new();
         let hir = parser
             .parse(self.regex.as_str())
-            .map_err(serde_wasm_bindgen::Error::new)?;
+            .map_err(error)?;
 
-        Hir::from(&hir).try_into()
+        Ok(Hir::from(&hir).into())
     }
 
     /// Returns a string representing the regular expression
