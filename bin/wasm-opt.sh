@@ -7,9 +7,13 @@
 # It looks for it in PATH and in target/binaryen (`pnpm setup` installs it
 # there). Without one, it uses the npm package.
 #
-# WASM_OPT_NPM=1 always uses the npm package.
+# The last output is kept in target/wasm-opt and reused while the input does
+# not change.
+#
+# WASM_OPT_NPM=1 always runs the npm package, without the cache.
 set -euo pipefail
 
+SELF="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
 cd "$(dirname "$0")/.."
 
 FLAGS=(
@@ -38,6 +42,21 @@ native_wasm_opt() {
   )
 }
 
+sha256() {
+  if command -v sha256sum > /dev/null; then sha256sum; else shasum -a 256; fi | cut -d' ' -f1
+}
+
+# The output only depends on the input, the binaryen version and the flags in
+# this file: reuse the last output when none of them changed
+CACHE_DIR=target/wasm-opt
+CACHE="$CACHE_DIR/$({ sha256 < "$1"; echo "$VERSION"; sha256 < "$SELF"; } | sha256).wasm"
+
+if [ "${WASM_OPT_NPM:-}" != "1" ] && [ -f "$CACHE" ]; then
+  echo "      input did not change, reusing $CACHE"
+  cp "$CACHE" "$2"
+  exit 0
+fi
+
 NATIVE=""
 if [ "${WASM_OPT_NPM:-}" != "1" ]; then
   NATIVE=$(native_wasm_opt)
@@ -51,4 +70,10 @@ else
     echo "      native wasm-opt version_$VERSION not found, using the npm package (slower, run \`pnpm setup\`)"
   fi
   pnpm exec wasm-opt "${FLAGS[@]}" "$1" -o "$2"
+fi
+
+if [ "${WASM_OPT_NPM:-}" != "1" ]; then
+  rm -rf "$CACHE_DIR"
+  mkdir -p "$CACHE_DIR"
+  cp "$2" "$CACHE"
 fi
