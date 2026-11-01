@@ -8,6 +8,9 @@
   "types": "./lib/commonjs.d.cts",
   "module": "./lib/esm.mjs",
   "browser": "./lib/web.js",
+  "files": [
+    "lib"
+  ],
   "exports": {
     "./package.json": "./package.json",
     ".": {
