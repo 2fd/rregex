@@ -1,4 +1,4 @@
-import { deepEqual } from "node:assert"
+import { deepEqual, throws } from "node:assert"
 import { test } from "bun:test"
 import { RRegex, RRegexSet } from '../lib/esm.mjs'
 
@@ -1129,4 +1129,33 @@ test("Captures -> toady", () => {
   deepEqual(caps.name["first"].value, "t");
   deepEqual(caps.get[2].value, "o");
   deepEqual(caps.name["last"].value, "y");
+})
+
+// \w is Unicode-aware, so this pattern compiles to more than the default 10 MiB size limit
+const BIG = '\\w{200}\\s\\w{200}\\s\\w{200}'
+
+test(`RRegex options: sizeLimit`, () => {
+  throws(() => new RRegex(BIG), /exceeds size limit/)
+  throws(() => new RRegex(BIG, {}), /exceeds size limit/)
+  throws(() => new RRegex(BIG, { sizeLimit: 1024 }), /exceeds size limit of 1024 bytes/)
+  deepEqual(new RRegex(BIG, { sizeLimit: 200 * 1024 * 1024 }).isMatch('a'), false)
+  deepEqual(new RRegex('a', undefined).isMatch('a'), true)
+  deepEqual(new RRegex('a', null).isMatch('a'), true)
+})
+
+test(`RRegex options: dfaSizeLimit and nestLimit`, () => {
+  deepEqual(new RRegex('a+', { dfaSizeLimit: 16 * 1024 * 1024 }).find('baa').value, 'aa')
+  throws(() => new RRegex('((a))', { nestLimit: 1 }), /nested/)
+  deepEqual(new RRegex('((a))', { nestLimit: 2 }).isMatch('a'), true)
+})
+
+test(`RRegex options: invalid values`, () => {
+  throws(() => new RRegex('a', { sizeLimit: -1 }))
+  throws(() => new RRegex('a', { sizeLimit: 1.5 }))
+  throws(() => new RRegex('a', { sizelimit: 1024 }), /unknown field/)
+})
+
+test(`RRegexSet options: sizeLimit`, () => {
+  throws(() => new RRegexSet([BIG, 'a']), /exceeds size limit/)
+  deepEqual(new RRegexSet([BIG, 'a'], { sizeLimit: 200 * 1024 * 1024 }).matches('a'), [1])
 })

@@ -31,8 +31,6 @@ const helloWorld :Workerd.Worker = (
     (name = "worker", esModule = embed "cf.test.mjs"),
     (name = "rregex/lib/cf", esModule = embed "./node_modules/rregex/lib/cf.mjs"),
     (name = "rregex/lib/cf.mjs", esModule = embed "./node_modules/rregex/lib/cf.mjs"),
-    (name = "rregex/lib/web", esModule = embed "./node_modules/rregex/lib/web.js"),
-    (name = "rregex/lib/web.js", esModule = embed "./node_modules/rregex/lib/web.js"),
     (name = "rregex/lib/rregex.wasm", wasm = embed "./node_modules/rregex/lib/rregex.wasm")
   ],
   compatibilityDate = "2023-02-28",

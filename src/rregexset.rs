@@ -1,3 +1,4 @@
+use crate::options::{apply_options, RRegexOptions, RegexOptions};
 use wasm_bindgen::prelude::*;
 
 type Result<T> = std::result::Result<T, JsError>;
@@ -22,8 +23,9 @@ impl RRegexSet {
 
     /// Create a new regex set with the given regular expressions.
     ///
-    /// This takes an of strings, if any item in the list is not a valid regular
-    /// expressions, then an error is returned.
+    /// This takes an array of strings, if any item in the list is not a valid regular
+    /// expression, then an error is returned. Options only apply to this
+    /// instance, see `RRegexOptions`.
     ///
     /// # Example
     ///
@@ -36,7 +38,11 @@ impl RRegexSet {
     /// expect(set.is_match("foo")).toBe(true)
     /// ```
     #[wasm_bindgen(constructor)]
-    pub fn new(list: &js_sys::Array) -> Result<RRegexSet> {
+    pub fn new(
+        #[wasm_bindgen(unchecked_param_type = "string[]")] list: &js_sys::Array,
+        options: Option<RRegexOptions>,
+    ) -> Result<RRegexSet> {
+        let options = RegexOptions::from_js(options)?;
         let mut patterns: Vec<String> = Vec::with_capacity(list.length() as usize);
         for (position, item) in list.iter().enumerate() {
           let pattern = item.as_string()
@@ -45,7 +51,10 @@ impl RRegexSet {
           patterns.push(pattern)
         };
 
-        let regexes = regex::RegexSet::new(patterns)
+        let mut builder = regex::RegexSetBuilder::new(patterns);
+        apply_options!(&mut builder, &options);
+        let regexes = builder
+          .build()
           .map_err(|err| JsError::new(&err.to_string()))?;
 
         Ok(RRegexSet { regexes })
@@ -121,7 +130,7 @@ impl RRegexSet {
     /// @see https://docs.rs/regex/latest/regex/struct.RegexSet.html#method.matches
     /// @param {string} text - The string against which to match the regular expression
     /// @return {number[]}
-    #[wasm_bindgen(skip_jsdoc)]
+    #[wasm_bindgen(skip_jsdoc, unchecked_return_type = "number[]")]
     pub fn matches(&self, text: &str) -> Vec<JsValue> {
         self.regexes.matches(text).iter().map(JsValue::from).collect()
     }
