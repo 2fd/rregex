@@ -76,12 +76,13 @@ impl RegexOptions {
         if !value.is_object() {
             return Err(JsError::new("invalid options: expected an object"));
         }
-        let object: &js_sys::Object = value.unchecked_ref();
+        let object: &crate::js::Object = value.unchecked_ref();
 
         // Reject unknown keys: a typo such as `sizelimit` must not silently
         // fall back to the default limit.
-        for key in js_sys::Object::keys(object).iter() {
-            let key = key.as_string().unwrap_or_default();
+        let keys = crate::js::Object::keys(object);
+        for index in 0..keys.length() {
+            let key = keys.get(index).as_string().unwrap_or_default();
             if !FIELDS.contains(&key.as_str()) {
                 return Err(JsError::new(&format!(
                     "unknown field `{}`, expected one of `{}`",
@@ -101,8 +102,8 @@ impl RegexOptions {
 
 /// Reads `object[key]` as an integer in `0..=max`. `undefined` and `null` give
 /// `None`.
-fn read_integer(object: &js_sys::Object, key: &str, max: f64) -> Result<Option<f64>, JsError> {
-    let value = js_sys::Reflect::get(object, &JsValue::from_str(key))
+fn read_integer(object: &crate::js::Object, key: &str, max: f64) -> Result<Option<f64>, JsError> {
+    let value = crate::js::reflect_get(object, &JsValue::from_str(key))
         .map_err(|_| JsError::new(&format!("cannot read `{}`", key)))?;
     if value.is_undefined() || value.is_null() {
         return Ok(None);

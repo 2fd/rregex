@@ -1,3 +1,4 @@
+mod js;
 mod options;
 mod types;
 mod rregex;

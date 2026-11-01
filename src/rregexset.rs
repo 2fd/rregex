@@ -39,12 +39,13 @@ impl RRegexSet {
     /// ```
     #[wasm_bindgen(constructor)]
     pub fn new(
-        #[wasm_bindgen(unchecked_param_type = "string[]")] list: &js_sys::Array,
+        #[wasm_bindgen(unchecked_param_type = "string[]")] list: &crate::js::Array,
         options: Option<RRegexOptions>,
     ) -> Result<RRegexSet> {
         let options = RegexOptions::from_js(options)?;
         let mut patterns: Vec<String> = Vec::with_capacity(list.length() as usize);
-        for (position, item) in list.iter().enumerate() {
+        for position in 0..list.length() {
+          let item = list.get(position);
           let pattern = item.as_string()
             .ok_or_else(|| JsError::new(&format!("item in position {} is not a string", position)))?;
 
