@@ -104,6 +104,9 @@ dist
 # TernJS port file
 .tern-port
 
+# Devcontainer
+.devcontainer
+
 # Rust files
 .DS_Store
 target/
