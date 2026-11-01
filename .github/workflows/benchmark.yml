@@ -13,7 +13,8 @@ on:
       - "package.json"
       - "pnpm-lock.yaml"
       - "bin/build.sh"
-      - "bin/bench-compare.mjs"
+      - "bin/bench-*.mjs"
+      - "test/browser/**"
       - ".github/scripts/benchmark-comment.cjs"
       - ".github/workflows/benchmark.yml"
 
@@ -95,15 +96,27 @@ jobs:
           node --run build
           test -f lib/esm.mjs -a -f lib/rregex.wasm
 
+      # Chrome and Firefox come with the runner image; the runtimes run one
+      # after the other, so they do not compete for the CPU
       - name: running benchmarks
+        env:
+          REPORT_DIR: ${{ runner.temp }}/benchmark
         run: |
-          REPORT_DIR="$RUNNER_TEMP/benchmark"
           mkdir -p "$REPORT_DIR"
+          for browser in chrome firefox; do
+            node bin/bench-browser.mjs \
+              --browser "$browser" \
+              --base .base/lib \
+              --head lib \
+              --json "$REPORT_DIR/$browser.json"
+          done
           node bin/bench-compare.mjs \
             --base .base/lib \
             --head lib \
             --base-label "\`${BASE_SHA::7}\` (${GITHUB_BASE_REF})" \
             --head-label "\`${HEAD_SHA::7}\`" \
+            --runtime "$REPORT_DIR/chrome.json" \
+            --runtime "$REPORT_DIR/firefox.json" \
             --markdown "$REPORT_DIR/report.md" \
             --json "$REPORT_DIR/results.json"
           cat "$REPORT_DIR/report.md" >> "$GITHUB_STEP_SUMMARY"
