@@ -41,12 +41,17 @@ jobs:
       - uses: actions/cache@v6
         with:
           path: |
-            ~/.cargo/bin/
             ~/.cargo/registry/index/
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             target/
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-
+
+      # prebuilt binary: `cargo install wasm-pack` compiles it in ~1 min
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: wasm-pack
 
       - uses: actions/checkout@v7
         with:
