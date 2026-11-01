@@ -81,10 +81,21 @@ jobs:
           test -f .latest/lib/esm.mjs -a -f .latest/lib/rregex.wasm
           echo "LATEST_VERSION=$(jq -r .version <<< "$meta")" >> "$GITHUB_ENV"
 
+      - name: installing
+        run: pnpm install --frozen-lockfile
+
+      # native binaryen for bin/wasm-opt.sh; rust-cache does not keep it
+      - name: reading binaryen version
+        id: binaryen
+        run: echo "version=$(node -p 'require("./node_modules/binaryen/package.json").version')" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v6
+        with:
+          path: target/binaryen
+          key: ${{ runner.os }}-binaryen-${{ steps.binaryen.outputs.version }}
+
       - name: setup
-        run: |
-          pnpm install --frozen-lockfile
-          node --run setup
+        run: node --run setup
 
       # check that the lib is complete; the build time goes to the report
       - name: building head

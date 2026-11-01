@@ -74,11 +74,18 @@ jobs:
         with:
           tool: wasm-pack,wasm-bindgen@${{ steps.wasm-bindgen.outputs.version }}
 
-      - name: checking regex engine versions
-        run: ./bin/check-regex-deps.sh
-
       - name: installing
         run: pnpm install --frozen-lockfile
+
+      # native binaryen for bin/wasm-opt.sh; rust-cache does not keep it
+      - name: reading binaryen version
+        id: binaryen
+        run: echo "version=$(node -p 'require("./node_modules/binaryen/package.json").version')" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v6
+        with:
+          path: target/binaryen
+          key: ${{ runner.os }}-binaryen-${{ steps.binaryen.outputs.version }}
 
       - name: setup
         run: node --run setup
@@ -90,6 +97,21 @@ jobs:
         with:
           name: lib
           path: lib/
+
+  # asks crates.io for the publish dates: in its own job, next to the build
+  check_deps:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: |
+            Cargo.lock
+            bin/check-regex-deps.sh
+          sparse-checkout-cone-mode: false
+
+      - name: checking regex engine versions
+        run: ./bin/check-regex-deps.sh
 
   # the Rust tests build the crate in the test profile: in their own job, so
   # the build and the jobs that need `lib` do not wait for them
@@ -255,6 +277,7 @@ jobs:
       id-token: write # to enable use of OIDC for npm provenance
 
     needs:
+      - check_deps
       - test_rs
       - test_node
       - test_bun
