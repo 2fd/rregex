@@ -43,16 +43,11 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # same paths and key as the release workflow, so the cache of master is reused
-      - uses: actions/cache@v6
+      # same shared key as the build of the release workflow, so the cache of
+      # master is reused
+      - uses: Swatinem/rust-cache@v2
         with:
-          path: |
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ runner.os }}-cargo-
+          shared-key: release
 
       # wasm-bindgen-cli must match the wasm-bindgen crate in Cargo.lock
       - name: reading wasm-bindgen version

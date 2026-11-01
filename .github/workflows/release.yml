@@ -57,15 +57,12 @@ jobs:
           registry-url: https://registry.npmjs.org/
           cache: pnpm
 
-      - uses: actions/cache@v6
+      # cargo registry and dependencies in target/. The key includes the rustc
+      # version, so a new Rust on the runner does not restore a stale cache.
+      # The benchmark workflow uses the same shared key.
+      - uses: Swatinem/rust-cache@v2
         with:
-          path: |
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ runner.os }}-cargo-
+          shared-key: release
 
       # wasm-bindgen-cli must match the wasm-bindgen crate in Cargo.lock
       - name: reading wasm-bindgen version
@@ -86,9 +83,6 @@ jobs:
       - name: setup
         run: node --run setup
 
-      - name: testing wasm
-        run: node --run test:rs -- --node
-
       - name: building
         run: node --run build
 
@@ -96,6 +90,34 @@ jobs:
         with:
           name: lib
           path: lib/
+
+  # the Rust tests build the crate in the test profile: in their own job, so
+  # the build and the jobs that need `lib` do not wait for them
+  test_rs:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "26"
+
+      - uses: Swatinem/rust-cache@v2
+
+      # wasm-bindgen-cli must match the wasm-bindgen crate in Cargo.lock
+      - name: reading wasm-bindgen version
+        id: wasm-bindgen
+        run: echo "version=$(grep -A1 '^name = "wasm-bindgen"$' Cargo.lock | sed -n 's/^version = "\(.*\)"$/\1/p')" >> "$GITHUB_OUTPUT"
+
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: wasm-pack,wasm-bindgen@${{ steps.wasm-bindgen.outputs.version }}
+
+      - run: rustup target add wasm32-unknown-unknown
+
+      - name: testing wasm
+        run: node --run test:rs -- --node
 
   test_node:
     runs-on: ubuntu-24.04
@@ -233,6 +255,7 @@ jobs:
       id-token: write # to enable use of OIDC for npm provenance
 
     needs:
+      - test_rs
       - test_node
       - test_bun
       - test_deno
