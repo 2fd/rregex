@@ -2,17 +2,18 @@
 name = "rregex"
 description = "Rust Regex binding for Javascript"
 license = "MIT"
-version = "0.1.0"
+version = "1.10.0"
 authors = [ "Fede Ramirez <i@2fd.me>" ]
 publish = false
 readme = "README.md"
 edition = "2018"
-homepage = "https://2fd.github.io/rregex"
+homepage = "http://rregex.dev"
 repository = "https://github.com/2fd/rregex"
+wasm-opt = false
 
 [dependencies]
-regex = "~1.0"
-regex-syntax = "0.6"
+regex = "=1.0.6"
+regex-syntax = "=0.6.2"
 js-sys = "0.3"
 wasm-bindgen = "0.2"
 
@@ -30,7 +31,7 @@ console_error_panic_hook = { version = "0.1.1", optional = true }
 wee_alloc = { version = "0.4.2", optional = true }
 
 [dev-dependencies]
-wasm-bindgen-test = "0.3.19"
+wasm-bindgen-test = "0.3.50"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
