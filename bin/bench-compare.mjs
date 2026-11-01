@@ -224,7 +224,10 @@ lines.push(
     'RegExp is the time of the equivalent native `RegExp` call in the same runtime ' +
     '(`new` has no equivalent, `RegExp` compiles on first use). ' +
     '± is the worst relative margin of error seen across rounds. ' +
-    (build ? 'The build time of `cargo build` depends on the state of the CI cache. ' : '') +
+    (build
+      ? 'The build time of `cargo build` depends on the state of the CI cache; ' +
+        '`wasm-opt` and `tsdown` run in parallel, so the total is less than the sum. '
+      : '') +
     'Shared CI runners are noisy: re-run the job before you act on a small regression.</sub>',
 );
 
