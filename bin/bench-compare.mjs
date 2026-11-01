@@ -6,12 +6,13 @@
 // Usage:
 //   node bin/bench-compare.mjs --base <lib dir> --head <lib dir> \
 //     [--base-label <text>] [--head-label <text>] \
-//     [--runtime <json>]... \
+//     [--runtime <json>]... [--build-time <json>] \
 //     [--markdown <file>] [--json <file>] \
 //     [--rounds 5] [--time 250] [--threshold 10]
 //
 // The cases run in Node. Each --runtime adds the results of another runtime,
-// written by bin/bench-browser.mjs, to the report.
+// written by bin/bench-browser.mjs, to the report. --build-time adds the build
+// time of head, written by bin/build.sh (BUILD_TIMINGS=<file>).
 //
 // To reduce noise, base and head run next to each other for every case, the
 // order alternates on each round, and the reported delta is the median of the
@@ -72,6 +73,7 @@ const { values: args } = parseArgs({
     'base-label': { type: 'string', default: 'base' },
     'head-label': { type: 'string', default: 'head' },
     runtime: { type: 'string', multiple: true, default: [] },
+    'build-time': { type: 'string' },
     markdown: { type: 'string' },
     json: { type: 'string' },
     rounds: { type: 'string', default: process.env.BENCH_ROUNDS ?? '5' },
@@ -95,6 +97,8 @@ const size = {
   head: (await stat(resolve(dirs.head, 'rregex.wasm'))).size,
 };
 size.delta = size.head / size.base - 1;
+
+const build = args['build-time'] ? JSON.parse(await readFile(args['build-time'], 'utf8')) : null;
 
 const names = [...cases(await importLib(dirs.head), data).keys()];
 
@@ -206,16 +210,26 @@ lines.push('| Artifact | base | head | Δ size |');
 lines.push('|:--|--:|--:|--:|');
 lines.push(`| \`rregex.wasm\` | ${fmtBytes(size.base)} | ${fmtBytes(size.head)} | ${fmtDelta(size.delta)} |`);
 lines.push('');
+
+// build time of head (base is the published package, it is not built)
+if (build) {
+  lines.push('| Build step | head |', '|:--|--:|');
+  const seconds = (ms) => `${(ms / 1000).toFixed(2)} s`;
+  for (const { name, ms } of build.steps) lines.push(`| \`${name}\` | ${seconds(ms)} |`);
+  lines.push(`| **Total** | **${seconds(build.total)}** |`, '');
+}
+
 lines.push(
   '<sub>Δ time is the median of the per-round head/base ratios (lower is better). ' +
     'RegExp is the time of the equivalent native `RegExp` call in the same runtime ' +
     '(`new` has no equivalent, `RegExp` compiles on first use). ' +
     '± is the worst relative margin of error seen across rounds. ' +
+    (build ? 'The build time of `cargo build` depends on the state of the CI cache. ' : '') +
     'Shared CI runners are noisy: re-run the job before you act on a small regression.</sub>',
 );
 
 const markdown = lines.join('\n') + '\n';
-const json = { rounds: ROUNDS, time: TIME, threshold: THRESHOLD, size, runtimes };
+const json = { rounds: ROUNDS, time: TIME, threshold: THRESHOLD, size, build, runtimes };
 
 if (args.markdown) await writeFile(args.markdown, markdown);
 if (args.json) await writeFile(args.json, JSON.stringify(json, null, 2) + '\n');

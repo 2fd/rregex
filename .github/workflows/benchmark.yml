@@ -16,6 +16,8 @@ on:
       - "package.json"
       - "pnpm-lock.yaml"
       - "bin/build.sh"
+      - "bin/wasm-opt.sh"
+      - "bin/install-binaryen.sh"
       - "js/**"
       - "tsdown.config.ts"
       - "bin/bench-*.mjs"
@@ -89,10 +91,15 @@ jobs:
           pnpm install --frozen-lockfile
           node --run setup
 
-      # check that the lib is complete
+      # native wasm-opt, see the release workflow
+      - name: installing binaryen
+        run: ./bin/install-binaryen.sh "$RUNNER_TEMP/binaryen" >> "$GITHUB_PATH"
+
+      # check that the lib is complete; the build time goes to the report
       - name: building head
         run: |
-          node --run build
+          mkdir -p "$RUNNER_TEMP/benchmark"
+          BUILD_TIMINGS="$RUNNER_TEMP/benchmark/build.json" node --run build
           test -f lib/esm.mjs -a -f lib/rregex.wasm
 
       # Chrome and Firefox come with the runner image; the runtimes run one
@@ -116,6 +123,7 @@ jobs:
             --head-label "\`${HEAD_SHA::7}\`" \
             --runtime "$REPORT_DIR/chrome.json" \
             --runtime "$REPORT_DIR/firefox.json" \
+            --build-time "$REPORT_DIR/build.json" \
             --markdown "$REPORT_DIR/report.md" \
             --json "$REPORT_DIR/results.json"
           cat "$REPORT_DIR/report.md" >> "$GITHUB_STEP_SUMMARY"

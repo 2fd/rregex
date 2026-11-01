@@ -83,6 +83,11 @@ jobs:
       - name: installing
         run: pnpm install --frozen-lockfile
 
+      # native wasm-opt with the version of the binaryen npm package, used by
+      # bin/wasm-opt.sh: same output, ~10x faster than the npm (JS) build
+      - name: installing binaryen
+        run: ./bin/install-binaryen.sh "$RUNNER_TEMP/binaryen" >> "$GITHUB_PATH"
+
       - name: setup
         run: node --run setup
 
@@ -96,6 +101,13 @@ jobs:
         with:
           name: lib
           path: lib/
+
+      # the native wasm-opt must give the same wasm as the npm package
+      - name: checking wasm-opt
+        run: |
+          wasm-opt --version
+          WASM_OPT_NPM=1 ./bin/wasm-opt.sh js/wasm/rregex_bg.wasm target/rregex.npm.wasm
+          cmp target/rregex.npm.wasm lib/rregex.wasm
 
   test_node:
     runs-on: ubuntu-24.04
