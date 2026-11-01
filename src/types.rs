@@ -1,11 +1,107 @@
+//! Builds the plain JS values returned by `RRegex` directly with `js_sys`,
+//! without `serde`. The output must stay identical to the previous
+//! `serde_wasm_bindgen::to_value` output: same keys, same key order, same
+//! value types (`undefined` for `None`, `Uint8Array` for bytes).
+use js_sys::{Array, Object, Uint8Array};
 use regex_syntax::hir;
-use serde::ser::SerializeStruct;
-use serde::Serialize;
-use std::convert::TryFrom;
 use wasm_bindgen::prelude::*;
+use wasm_bindgen::JsCast;
 
-#[wasm_bindgen(typescript_custom_section)]
-const MATCH_TYPE: &'static str = r#"/**
+// Note: an `inline_js` constructor (`{ start, end, value }` in one call) is
+// not used because JS snippets are not supported by `--target no-modules`
+// (`lib/standalone.js`) and `bin/build.sh` ships a single JS file per target.
+#[wasm_bindgen]
+extern "C" {
+    /// A plain JS object with infallible (non-`catch`) property setters.
+    /// Typed setters pass numbers and strings straight through the ABI,
+    /// without allocating an intermediate `JsValue` for each value.
+    #[wasm_bindgen(extends = Object)]
+    type Obj;
+
+    #[wasm_bindgen(method, indexing_setter)]
+    fn set(this: &Obj, key: &JsValue, value: &JsValue);
+
+    #[wasm_bindgen(method, indexing_setter)]
+    fn set_str(this: &Obj, key: &JsValue, value: &str);
+
+    #[wasm_bindgen(method, indexing_setter)]
+    fn set_num(this: &Obj, key: &JsValue, value: f64);
+
+    #[wasm_bindgen(method, indexing_setter)]
+    fn set_bool(this: &Obj, key: &JsValue, value: bool);
+}
+
+impl Obj {
+    fn new() -> Obj {
+        Object::new().unchecked_into()
+    }
+}
+
+/// JS strings for the static keys and values of `Match`, `Captures` and HIR
+/// objects, created once per thread so each property write is a single JS call.
+struct Keys {
+    type_: JsValue,
+    name: JsValue,
+    variant: JsValue,
+    values: JsValue,
+    struct_: JsValue,
+    enum_: JsValue,
+    kind: JsValue,
+    ranges: JsValue,
+    start: JsValue,
+    end: JsValue,
+    len: JsValue,
+    min: JsValue,
+    max: JsValue,
+    greedy: JsValue,
+    sub: JsValue,
+    index: JsValue,
+    get: JsValue,
+    plain_name: JsValue,
+    value: JsValue,
+}
+
+impl Keys {
+    fn new() -> Keys {
+        Keys {
+            type_: "@type".into(),
+            name: "@name".into(),
+            variant: "@variant".into(),
+            values: "@values".into(),
+            struct_: "struct".into(),
+            enum_: "enum".into(),
+            kind: "kind".into(),
+            ranges: "ranges".into(),
+            start: "start".into(),
+            end: "end".into(),
+            len: "len".into(),
+            min: "min".into(),
+            max: "max".into(),
+            greedy: "greedy".into(),
+            sub: "sub".into(),
+            index: "index".into(),
+            get: "get".into(),
+            plain_name: "name".into(),
+            value: "value".into(),
+        }
+    }
+}
+
+thread_local! {
+    static KEYS: Keys = Keys::new();
+}
+
+/// Starts an object with the `@type` and `@name` header shared by every HIR node.
+fn node(k: &Keys, type_: &JsValue, name: &str) -> Obj {
+    let o = Obj::new();
+    o.set(&k.type_, type_);
+    o.set_str(&k.name, name);
+    o
+}
+
+macro_rules! match_type {
+    () => {
+r#"/**
  * Represents a single match of a regex in a haystack.
  *
  * A `Match` contains both the start and end byte offsets of the match and the
@@ -56,7 +152,9 @@ export type Match = {
   start: number
   end: number
   value: string
-}"#;
+}"#
+    };
+}
 
 pub struct Match<'t>(regex::Match<'t>);
 
@@ -66,28 +164,22 @@ impl<'t> From<regex::Match<'t>> for Match<'t> {
     }
 }
 
-impl<'t> TryFrom<Match<'t>> for JsValue {
-    type Error = serde_wasm_bindgen::Error;
-    fn try_from(value: Match<'t>) -> Result<Self, Self::Error> {
-        serde_wasm_bindgen::to_value(&value)
+impl<'t> From<Match<'t>> for JsValue {
+    fn from(value: Match<'t>) -> Self {
+        let m = value.0;
+        let o = Obj::new();
+        KEYS.with(|k| {
+            o.set_num(&k.start, m.start() as f64);
+            o.set_num(&k.end, m.end() as f64);
+            o.set_str(&k.value, m.as_str());
+        });
+        o.into()
     }
 }
 
-impl<'t> Serialize for Match<'t> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        let mut hir = serializer.serialize_struct("Match", 3)?;
-        hir.serialize_field("start", &self.0.start())?;
-        hir.serialize_field("end", &self.0.end())?;
-        hir.serialize_field("value", &self.0.as_str())?;
-        hir.end()
-    }
-}
-
-#[wasm_bindgen(typescript_custom_section)]
-const CAPTURES_TYPE: &'static str = r#"/**
+macro_rules! captures_type {
+    () => {
+r#"/**
  * Represents the capture groups for a single match.
  *
  * Capture groups refer to parts of a regex enclosed in parentheses. They can
@@ -133,36 +225,42 @@ const CAPTURES_TYPE: &'static str = r#"/**
 export type Captures = {
   get: Match[]
   name: Record<string, Match>
-}"#;
+}"#
+    };
+}
 
 impl<'t> Match<'t> {
+    /// Named groups are set with `Reflect::set` (a `catch` import), as before:
+    /// the wasm exports it pulls in (`__wbindgen_exn_store`, …) are part of the
+    /// `InitOutput` type in the generated `.d.ts`.
     pub fn captures(
         captures: regex::Captures,
         captures_names: regex::CaptureNames,
-    ) -> Result<JsValue, serde_wasm_bindgen::Error> {
-        let matches = js_sys::Array::new();
-        let names = js_sys::Object::new();
+    ) -> Result<JsValue, JsValue> {
+        let matches = Array::new();
+        let names = Obj::new();
         for (index, name) in captures_names.enumerate() {
             if let Some(m) = captures.get(index) {
-                let v = JsValue::try_from(Match::from(m))?;
-                matches.push(&v);
+                matches.push(&JsValue::from(Match::from(m)));
             }
 
             if let Some(n) = name {
                 if let Some(m) = captures.name(n) {
-                    let v = JsValue::try_from(Match::from(m))?;
-                    js_sys::Reflect::set(&names, &JsValue::from(n), &v)?;
+                    js_sys::Reflect::set(&names, &JsValue::from_str(n), &JsValue::from(Match::from(m)))?;
                 }
             }
         }
 
-        let result = js_sys::Object::new();
-        js_sys::Reflect::set(&result, &JsValue::from("get"), &matches)?;
-        js_sys::Reflect::set(&result, &JsValue::from("name"), &names)?;
-        Ok(JsValue::from(result))
+        let result = Obj::new();
+        KEYS.with(|k| {
+            result.set(&k.get, &matches);
+            result.set(&k.plain_name, &names);
+        });
+        Ok(result.into())
     }
 }
 
+/// Wraps a borrowed `regex_syntax` value to convert it into a JS value.
 pub struct Hir<T>(T);
 
 impl<T> From<T> for Hir<T> {
@@ -171,41 +269,46 @@ impl<T> From<T> for Hir<T> {
     }
 }
 
-impl<T> TryFrom<Hir<T>> for JsValue
-where
-    Hir<T>: Serialize,
-{
-    type Error = serde_wasm_bindgen::Error;
-    fn try_from(value: Hir<T>) -> Result<Self, Self::Error> {
-        serde_wasm_bindgen::to_value(&value)
+impl From<Hir<&hir::Hir>> for JsValue {
+    fn from(value: Hir<&hir::Hir>) -> Self {
+        KEYS.with(|k| value.to_js(k))
     }
 }
 
-#[wasm_bindgen(typescript_custom_section)]
-const HIR_TYPE: &'static str = r#"/**
+/// Builds the JS representation of a HIR node.
+trait ToJs {
+    fn to_js(&self, k: &Keys) -> JsValue;
+}
+
+/// Returns `[value]`, the `@values` payload of single-value enum variants.
+fn values1(k: &Keys, value: &dyn ToJs) -> Array {
+    Array::of1(&value.to_js(k))
+}
+
+macro_rules! hir_type {
+    () => {
+r#"/**
  * A high-level intermediate representation (HIR) for a regular expression.
  */
 export type Hir = {
   '@type': 'struct'
   '@name': 'regex_syntax::hir::Hir'
   kind: HirKind
-}"#;
+}"#
+    };
+}
 
-impl Serialize for Hir<&hir::Hir> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        let mut hir = serializer.serialize_struct("Hir", 3)?;
-        hir.serialize_field("@type", "struct")?;
-        hir.serialize_field("@name", "regex_syntax::hir::Hir")?;
-        hir.serialize_field("kind", &Hir::from(self.0.kind()))?;
-        hir.end()
+impl ToJs for Hir<&hir::Hir> {
+    fn to_js(&self, k: &Keys) -> JsValue {
+        let o = node(k, &k.struct_, "regex_syntax::hir::Hir");
+        o.set(&k.kind, &Hir(self.0.kind()).to_js(k));
+        o.into()
     }
 }
 
-#[wasm_bindgen(typescript_custom_section)]
-const HIRKIND_TYPE: &'static str = r#"/**
+macro_rules! hirkind_type {
+    () => {
+r#"/**
  * The underlying kind of an arbitrary `Hir` expression.
  *
  * An `HirKind` is principally useful for doing case analysis on the type of a
@@ -317,57 +420,42 @@ export type HirKindAlternationVariant = {
   '@name': 'regex_syntax::hir::HirKind'
   '@variant': 'Alternation'
   '@values': [Hir[]]
-}"#;
+}"#
+    };
+}
 
-impl Serialize for Hir<&hir::HirKind> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        let mut hir = serializer.serialize_struct("HirKind", 4)?;
-        hir.serialize_field("@type", "enum")?;
-        hir.serialize_field("@name", "regex_syntax::hir::HirKind")?;
-        match &self.0 {
-            hir::HirKind::Empty => {
-                hir.serialize_field("@variant", "Empty")?;
-            }
-            hir::HirKind::Literal(l) => {
-                hir.serialize_field("@variant", "Literal")?;
-                hir.serialize_field("@values", &vec![Hir::from(l)])?;
-            }
-            hir::HirKind::Class(c) => {
-                hir.serialize_field("@variant", "Class")?;
-                hir.serialize_field("@values", &vec![Hir::from(c)])?;
-            }
-            hir::HirKind::Look(l) => {
-                hir.serialize_field("@variant", "Look")?;
-                hir.serialize_field("@values", &vec![Hir::from(l)])?;
-            }
-            hir::HirKind::Repetition(r) => {
-                hir.serialize_field("@variant", "Repetition")?;
-                hir.serialize_field("@values", &vec![Hir::from(r)])?;
-            }
-            hir::HirKind::Capture(c) => {
-                hir.serialize_field("@variant", "Capture")?;
-                hir.serialize_field("@values", &vec![Hir::from(c)])?;
-            }
-            hir::HirKind::Concat(c) => {
-                let values: Vec<Hir<&hir::Hir>> = c.iter().map(Hir::from).collect();
-                hir.serialize_field("@variant", "Concat")?;
-                hir.serialize_field("@values", &vec![values])?;
-            }
-            hir::HirKind::Alternation(a) => {
-                let values: Vec<Hir<&hir::Hir>> = a.iter().map(Hir::from).collect();
-                hir.serialize_field("@variant", "Alternation")?;
-                hir.serialize_field("@values", &vec![values])?;
-            }
+fn hir_list(k: &Keys, list: &[hir::Hir]) -> Array {
+    let values = Array::new();
+    for h in list {
+        values.push(&Hir(h).to_js(k));
+    }
+    Array::of1(&values)
+}
+
+impl ToJs for Hir<&hir::HirKind> {
+    fn to_js(&self, k: &Keys) -> JsValue {
+        let o = node(k, &k.enum_, "regex_syntax::hir::HirKind");
+        let (variant, values) = match self.0 {
+            hir::HirKind::Empty => ("Empty", None),
+            hir::HirKind::Literal(l) => ("Literal", Some(values1(k, &Hir(l)))),
+            hir::HirKind::Class(c) => ("Class", Some(values1(k, &Hir(c)))),
+            hir::HirKind::Look(l) => ("Look", Some(values1(k, &Hir(l)))),
+            hir::HirKind::Repetition(r) => ("Repetition", Some(values1(k, &Hir(r)))),
+            hir::HirKind::Capture(c) => ("Capture", Some(values1(k, &Hir(c)))),
+            hir::HirKind::Concat(c) => ("Concat", Some(hir_list(k, c))),
+            hir::HirKind::Alternation(a) => ("Alternation", Some(hir_list(k, a))),
         };
-        hir.end()
+        o.set_str(&k.variant, variant);
+        if let Some(values) = values {
+            o.set(&k.values, &values);
+        }
+        o.into()
     }
 }
 
-#[wasm_bindgen(typescript_custom_section)]
-const LITERAL_TYPE: &'static str = r#"/**
+macro_rules! literal_type {
+    () => {
+r#"/**
  * The high-level intermediate representation of a literal.
  *
  * A literal corresponds to 0 or more bytes that should be matched literally.
@@ -379,37 +467,22 @@ export type Literal = {
   '@type': 'struct'
   '@name': 'regex_syntax::hir::Literal'
   '@values': [Uint8Array]
-}"#;
+}"#
+    };
+}
 
-impl Serialize for Hir<&Box<[u8]>> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        serializer.serialize_bytes(self.0.as_ref())
+impl ToJs for Hir<&hir::Literal> {
+    fn to_js(&self, k: &Keys) -> JsValue {
+        let o = node(k, &k.struct_, "regex_syntax::hir::Literal");
+        let bytes = Uint8Array::from(self.0 .0.as_ref());
+        o.set(&k.values, &Array::of1(&bytes));
+        o.into()
     }
 }
 
-impl Serialize for Hir<&hir::Literal> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        // let mut bytes = serializer.serialize_bytes(&self.0.0)?;
-
-        // let mut values = serializer.serialize_seq(Some(1))?;
-        // values.serialize_element(&bytes)?;
-
-        let mut hir = serializer.serialize_struct("Literal", 3)?;
-        hir.serialize_field("@type", "struct")?;
-        hir.serialize_field("@name", "regex_syntax::hir::Literal")?;
-        hir.serialize_field("@values", &vec![&Hir::from(&self.0 .0)])?;
-        hir.end()
-    }
-}
-
-#[wasm_bindgen(typescript_custom_section)]
-const CLASS_TYPE: &'static str = r#"/**
+macro_rules! class_type {
+    () => {
+r#"/**
  * The high-level intermediate representation of a character class.
  *
  * A character class corresponds to a set of characters. A character is either
@@ -447,32 +520,26 @@ export type ClassByteVariant = {
   '@name': 'regex_syntax::hir::Class'
   '@variant': 'Bytes'
   '@values': [ClassBytes]
-}"#;
+}"#
+    };
+}
 
-impl Serialize for Hir<&hir::Class> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        let mut hir = serializer.serialize_struct("Class", 4)?;
-        hir.serialize_field("@type", "enum")?;
-        hir.serialize_field("@name", "regex_syntax::hir::Class")?;
-        match &self.0 {
-            hir::Class::Bytes(b) => {
-                hir.serialize_field("@variant", "Bytes")?;
-                hir.serialize_field("@values", &vec![Hir::from(b)])?;
-            }
-            hir::Class::Unicode(b) => {
-                hir.serialize_field("@variant", "Unicode")?;
-                hir.serialize_field("@values", &vec![Hir::from(b)])?;
-            }
-        }
-        hir.end()
+impl ToJs for Hir<&hir::Class> {
+    fn to_js(&self, k: &Keys) -> JsValue {
+        let o = node(k, &k.enum_, "regex_syntax::hir::Class");
+        let (variant, values) = match self.0 {
+            hir::Class::Bytes(b) => ("Bytes", values1(k, &Hir(b))),
+            hir::Class::Unicode(u) => ("Unicode", values1(k, &Hir(u))),
+        };
+        o.set_str(&k.variant, variant);
+        o.set(&k.values, &values);
+        o.into()
     }
 }
 
-#[wasm_bindgen(typescript_custom_section)]
-const CLASSUNICODE_TYPE: &'static str = r#"/**
+macro_rules! classunicode_type {
+    () => {
+r#"/**
  * A set of characters represented by Unicode scalar values.
  */
 export type ClassUnicode = {
@@ -481,26 +548,25 @@ export type ClassUnicode = {
 
   /** The underlying ranges as a slice. */
   ranges: ClassUnicodeRange[]
-}"#;
+}"#
+    };
+}
 
-impl Serialize for Hir<&hir::ClassUnicode> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        let ranges: &Vec<Hir<&hir::ClassUnicodeRange>> =
-            &self.0.ranges().iter().map(Hir::from).collect();
-
-        let mut hir = serializer.serialize_struct("ClassUnicode", 3)?;
-        hir.serialize_field("@type", "struct")?;
-        hir.serialize_field("@name", "regex_syntax::hir::ClassUnicode")?;
-        hir.serialize_field("ranges", ranges)?;
-        hir.end()
+impl ToJs for Hir<&hir::ClassUnicode> {
+    fn to_js(&self, k: &Keys) -> JsValue {
+        let o = node(k, &k.struct_, "regex_syntax::hir::ClassUnicode");
+        let ranges = Array::new();
+        for r in self.0.ranges() {
+            ranges.push(&Hir(r).to_js(k));
+        }
+        o.set(&k.ranges, &ranges);
+        o.into()
     }
 }
 
-#[wasm_bindgen(typescript_custom_section)]
-const CLASSUNICODERANGE_TYPE: &'static str = r#"/**
+macro_rules! classunicoderange_type {
+    () => {
+r#"/**
  * A single range of characters represented by Unicode scalar values.
  *
  * The range is closed. That is, the start and end of the range are included in
@@ -528,25 +594,24 @@ export type ClassUnicodeRange = {
    * The number of codepoints in this range.
    */
   len: number
-}"#;
+}"#
+    };
+}
 
-impl Serialize for Hir<&hir::ClassUnicodeRange> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        let mut hir = serializer.serialize_struct("ClassUnicodeRange", 5)?;
-        hir.serialize_field("@type", "struct")?;
-        hir.serialize_field("@name", "regex_syntax::hir::ClassUnicodeRange")?;
-        hir.serialize_field("start", &self.0.start())?;
-        hir.serialize_field("end", &self.0.end())?;
-        hir.serialize_field("len", &self.0.len())?;
-        hir.end()
+impl ToJs for Hir<&hir::ClassUnicodeRange> {
+    fn to_js(&self, k: &Keys) -> JsValue {
+        let o = node(k, &k.struct_, "regex_syntax::hir::ClassUnicodeRange");
+        let mut buf = [0u8; 4];
+        o.set_str(&k.start, self.0.start().encode_utf8(&mut buf));
+        o.set_str(&k.end, self.0.end().encode_utf8(&mut buf));
+        o.set_num(&k.len, self.0.len() as f64);
+        o.into()
     }
 }
 
-#[wasm_bindgen(typescript_custom_section)]
-const CLASSBYTES_TYPE: &'static str = r#"/**
+macro_rules! classbytes_type {
+    () => {
+r#"/**
  * A set of characters represented by arbitrary bytes (where one byte corresponds
  * to one character).
  */
@@ -556,26 +621,25 @@ export type ClassBytes = {
 
   /** The underlying ranges as a slice. */
   ranges: ClassBytesRange[]
-}"#;
+}"#
+    };
+}
 
-impl Serialize for Hir<&hir::ClassBytes> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        let ranges: &Vec<Hir<&hir::ClassBytesRange>> =
-            &self.0.ranges().iter().map(Hir::from).collect();
-
-        let mut hir = serializer.serialize_struct("ClassBytes", 3)?;
-        hir.serialize_field("@type", "struct")?;
-        hir.serialize_field("@name", "regex_syntax::hir::ClassBytes")?;
-        hir.serialize_field("ranges", ranges)?;
-        hir.end()
+impl ToJs for Hir<&hir::ClassBytes> {
+    fn to_js(&self, k: &Keys) -> JsValue {
+        let o = node(k, &k.struct_, "regex_syntax::hir::ClassBytes");
+        let ranges = Array::new();
+        for r in self.0.ranges() {
+            ranges.push(&Hir(r).to_js(k));
+        }
+        o.set(&k.ranges, &ranges);
+        o.into()
     }
 }
 
-#[wasm_bindgen(typescript_custom_section)]
-const CLASSBYTESRANGE_TYPE: &'static str = r#"/**
+macro_rules! classbytesrange_type {
+    () => {
+r#"/**
  * A single range of characters represented by arbitrary bytes.
  *
  * The range is closed. That is, the start and end of the range are included in
@@ -603,25 +667,23 @@ export type ClassBytesRange = {
    * The number of bytes in this range.
    */
   len: number
-}"#;
+}"#
+    };
+}
 
-impl Serialize for Hir<&hir::ClassBytesRange> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        let mut hir = serializer.serialize_struct("ClassBytesRange", 5)?;
-        hir.serialize_field("@type", "struct")?;
-        hir.serialize_field("@name", "regex_syntax::hir::ClassBytesRange")?;
-        hir.serialize_field("start", &self.0.start())?;
-        hir.serialize_field("end", &self.0.end())?;
-        hir.serialize_field("len", &self.0.len())?;
-        hir.end()
+impl ToJs for Hir<&hir::ClassBytesRange> {
+    fn to_js(&self, k: &Keys) -> JsValue {
+        let o = node(k, &k.struct_, "regex_syntax::hir::ClassBytesRange");
+        o.set_num(&k.start, self.0.start() as f64);
+        o.set_num(&k.end, self.0.end() as f64);
+        o.set_num(&k.len, self.0.len() as f64);
+        o.into()
     }
 }
 
-#[wasm_bindgen(typescript_custom_section)]
-const LOOK_TYPE: &'static str = r#" /**
+macro_rules! look_type {
+    () => {
+r#" /**
  * The high-level intermediate representation for a look-around assertion.
  *
  * An assertion match is always zero-length. Also called an “empty match.”
@@ -838,78 +900,41 @@ export type LookWordEndHalfUnicodeVariant = {
   '@type': 'enum'
   '@name': 'regex_syntax::hir::Look',
   '@variant': 'WordEndHalfUnicode'
-}"#;
+}"#
+    };
+}
 
-impl Serialize for Hir<&hir::Look> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        let mut hir = serializer.serialize_struct("Look", 3)?;
-        hir.serialize_field("@type", "enum")?;
-        hir.serialize_field("@name", "regex_syntax::hir::Look")?;
-        match self.0 {
-            hir::Look::Start => {
-                hir.serialize_field("@variant", "Start")?;
-            }
-            hir::Look::End => {
-                hir.serialize_field("@variant", "End")?;
-            }
-            hir::Look::StartLF => {
-                hir.serialize_field("@variant", "StartLF")?;
-            }
-            hir::Look::EndLF => {
-                hir.serialize_field("@variant", "EndLF")?;
-            }
-            hir::Look::StartCRLF => {
-                hir.serialize_field("@variant", "StartCRLF")?;
-            }
-            hir::Look::EndCRLF => {
-                hir.serialize_field("@variant", "EndCRLF")?;
-            }
-            hir::Look::WordAscii => {
-                hir.serialize_field("@variant", "WordAscii")?;
-            }
-            hir::Look::WordAsciiNegate => {
-                hir.serialize_field("@variant", "WordAsciiNegate")?;
-            }
-            hir::Look::WordUnicode => {
-                hir.serialize_field("@variant", "WordUnicode")?;
-            }
-            hir::Look::WordUnicodeNegate => {
-                hir.serialize_field("@variant", "WordUnicodeNegate")?;
-            }
-            hir::Look::WordStartAscii => {
-                hir.serialize_field("@variant", "WordStartAscii")?;
-            }
-            hir::Look::WordEndAscii => {
-                hir.serialize_field("@variant", "WordEndAscii")?;
-            }
-            hir::Look::WordStartUnicode => {
-                hir.serialize_field("@variant", "WordStartUnicode")?;
-            }
-            hir::Look::WordEndUnicode => {
-                hir.serialize_field("@variant", "WordEndUnicode")?;
-            }
-            hir::Look::WordStartHalfAscii => {
-                hir.serialize_field("@variant", "WordStartHalfAscii")?;
-            }
-            hir::Look::WordEndHalfAscii => {
-                hir.serialize_field("@variant", "WordEndHalfAscii")?;
-            }
-            hir::Look::WordStartHalfUnicode => {
-                hir.serialize_field("@variant", "WordStartHalfUnicode")?;
-            }
-            hir::Look::WordEndHalfUnicode => {
-                hir.serialize_field("@variant", "WordEndHalfUnicode")?;
-            }
+impl ToJs for Hir<&hir::Look> {
+    fn to_js(&self, k: &Keys) -> JsValue {
+        let o = node(k, &k.enum_, "regex_syntax::hir::Look");
+        let variant = match self.0 {
+            hir::Look::Start => "Start",
+            hir::Look::End => "End",
+            hir::Look::StartLF => "StartLF",
+            hir::Look::EndLF => "EndLF",
+            hir::Look::StartCRLF => "StartCRLF",
+            hir::Look::EndCRLF => "EndCRLF",
+            hir::Look::WordAscii => "WordAscii",
+            hir::Look::WordAsciiNegate => "WordAsciiNegate",
+            hir::Look::WordUnicode => "WordUnicode",
+            hir::Look::WordUnicodeNegate => "WordUnicodeNegate",
+            hir::Look::WordStartAscii => "WordStartAscii",
+            hir::Look::WordEndAscii => "WordEndAscii",
+            hir::Look::WordStartUnicode => "WordStartUnicode",
+            hir::Look::WordEndUnicode => "WordEndUnicode",
+            hir::Look::WordStartHalfAscii => "WordStartHalfAscii",
+            hir::Look::WordEndHalfAscii => "WordEndHalfAscii",
+            hir::Look::WordStartHalfUnicode => "WordStartHalfUnicode",
+            hir::Look::WordEndHalfUnicode => "WordEndHalfUnicode",
         };
-        hir.end()
+        o.set_str(&k.variant, variant);
+        o.into()
     }
 }
 
-#[wasm_bindgen(typescript_custom_section)]
-const REPETITION_TYPE: &'static str = r#"/**
+macro_rules! repetition_type {
+    () => {
+r#"/**
  * The high-level intermediate representation of a repetition operator.
  *
  * A repetition operator permits the repetition of an arbitrary sub-expression
@@ -953,26 +978,27 @@ export type Repetition = {
    * The expression being repeated.
    */
   sub: Hir
-}"#;
+}"#
+    };
+}
 
-impl Serialize for Hir<&hir::Repetition> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        let mut hir = serializer.serialize_struct("Repetition", 6)?;
-        hir.serialize_field("@type", "struct")?;
-        hir.serialize_field("@name", "regex_syntax::hir::Repetition")?;
-        hir.serialize_field("min", &self.0.min)?;
-        hir.serialize_field("max", &self.0.max)?;
-        hir.serialize_field("greedy", &self.0.greedy)?;
-        hir.serialize_field("sub", &Hir::from(self.0.sub.as_ref()))?;
-        hir.end()
+impl ToJs for Hir<&hir::Repetition> {
+    fn to_js(&self, k: &Keys) -> JsValue {
+        let o = node(k, &k.struct_, "regex_syntax::hir::Repetition");
+        o.set_num(&k.min, self.0.min as f64);
+        match self.0.max {
+            Some(max) => o.set_num(&k.max, max as f64),
+            None => o.set(&k.max, &JsValue::UNDEFINED),
+        }
+        o.set_bool(&k.greedy, self.0.greedy);
+        o.set(&k.sub, &Hir(self.0.sub.as_ref()).to_js(k));
+        o.into()
     }
 }
 
-#[wasm_bindgen(typescript_custom_section)]
-const CAPTURE_TYPE: &'static str = r#"/**
+macro_rules! capture_type {
+    () => {
+r#"/**
  * The high-level intermediate representation for a capturing group.
  *
  * A capturing group always has an index and a child expression. It may also
@@ -994,19 +1020,40 @@ export type Capture = {
 
   /** The expression inside the capturing group, which may be empty. */
   sub: Hir
-}"#;
+}"#
+    };
+}
 
-impl Serialize for Hir<&hir::Capture> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        let mut hir = serializer.serialize_struct("Capture", 5)?;
-        hir.serialize_field("@type", "struct")?;
-        hir.serialize_field("@name", "regex_syntax::hir::Capture")?;
-        hir.serialize_field("index", &self.0.index)?;
-        hir.serialize_field("name", &self.0.name)?;
-        hir.serialize_field("sub", &Hir::from(self.0.sub.as_ref()))?;
-        hir.end()
+impl ToJs for Hir<&hir::Capture> {
+    fn to_js(&self, k: &Keys) -> JsValue {
+        let o = node(k, &k.struct_, "regex_syntax::hir::Capture");
+        o.set_num(&k.index, self.0.index as f64);
+        match &self.0.name {
+            Some(name) => o.set_str(&k.plain_name, name),
+            None => o.set(&k.plain_name, &JsValue::UNDEFINED),
+        }
+        o.set(&k.sub, &Hir(self.0.sub.as_ref()).to_js(k));
+        o.into()
     }
 }
+
+// `wasm-bindgen` appends one block per `typescript_custom_section` in the order
+// it finds them in the linked wasm. That order is not the source order, and
+// unrelated code changes can change it. A single section keeps the published
+// `.d.ts` stable. The order below is the order of the published `.d.ts`.
+#[wasm_bindgen(typescript_custom_section)]
+const TYPES: &'static str = concat!(
+    match_type!(), "\n\n",
+    hir_type!(), "\n\n",
+    hirkind_type!(), "\n\n",
+    literal_type!(), "\n\n",
+    class_type!(), "\n\n",
+    classunicode_type!(), "\n\n",
+    classunicoderange_type!(), "\n\n",
+    classbytes_type!(), "\n\n",
+    classbytesrange_type!(), "\n\n",
+    look_type!(), "\n\n",
+    repetition_type!(), "\n\n",
+    captures_type!(), "\n\n",
+    capture_type!(),
+);
