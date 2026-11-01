@@ -1,0 +1,79 @@
+name: benchmark comment
+
+# Posts the report of the `benchmark` workflow on PRs from forks and dependabot,
+# which get a read-only token in `pull_request` (PRs from this repository are
+# handled by the `comment` job of `benchmark`). It runs from the default
+# branch with a write token, so it never checks out or runs code from the PR:
+# the artifact is only text, and the PR is resolved from the run metadata.
+
+on:
+  workflow_run:
+    workflows: [benchmark]
+    types: [completed]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.workflow_run.head_repository.full_name }}-${{ github.event.workflow_run.head_branch }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: read # to download the artifact of the benchmark run
+  pull-requests: write # to create and update the comment
+
+jobs:
+  comment:
+    if: >-
+      github.event.workflow_run.event == 'pull_request' &&
+      contains(fromJSON('["success", "failure"]'), github.event.workflow_run.conclusion) &&
+      (github.event.workflow_run.head_repository.full_name != github.repository ||
+       github.event.workflow_run.actor.login == 'dependabot[bot]')
+
+    runs-on: ubuntu-24.04
+
+    steps:
+      # default branch: trusted code only
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: .github/scripts
+
+      - uses: actions/download-artifact@v8
+        if: github.event.workflow_run.conclusion == 'success'
+        with:
+          name: benchmark
+          path: ${{ runner.temp }}/benchmark
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+
+      - uses: actions/github-script@v9
+        with:
+          script: |
+            const run = context.payload.workflow_run;
+            const { owner, repo } = context.repo;
+
+            // `pull_requests` is empty for PRs from forks
+            let pr = run.pull_requests.find((p) => p.head.sha === run.head_sha)?.number;
+            if (!pr) {
+              const { data } = await github.rest.pulls.list({
+                owner,
+                repo,
+                state: 'open',
+                head: `${run.head_repository.owner.login}:${run.head_branch}`,
+                per_page: 100,
+              });
+              pr = data.find((p) => p.head.sha === run.head_sha)?.number;
+            }
+            if (!pr) {
+              core.notice(`No open PR has ${run.head_sha} as head (it was probably updated), skipping.`);
+              return;
+            }
+
+            await require('./.github/scripts/benchmark-comment.cjs')({
+              github,
+              context,
+              core,
+              pr,
+              sha: run.head_sha,
+              runUrl: run.html_url,
+              success: run.conclusion === 'success',
+              reportPath: `${process.env.RUNNER_TEMP}/benchmark/report.md`,
+            });

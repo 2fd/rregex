@@ -8,6 +8,9 @@
   "types": "./lib/commonjs.d.cts",
   "module": "./lib/esm.mjs",
   "browser": "./lib/web.js",
+  "files": [
+    "lib"
+  ],
   "exports": {
     "./package.json": "./package.json",
     ".": {
@@ -40,6 +43,7 @@
     "setup": "./bin/install.sh",
     "build": "./bin/build.sh",
     "test": "node --test test/node.test.mjs",
+    "test:browser": "node test/browser/serve.mjs",
     "test:rs": "wasm-pack test",
     "semantic-release": "semantic-release"
   },

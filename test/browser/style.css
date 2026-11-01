@@ -1,0 +1,120 @@
+:root {
+  color-scheme: light;
+  --surface: #fcfcfb;
+  --text: #0b0b0b;
+  --pass: #1a7f37;
+  --fail: #cf222e;
+  --muted: #6e7781;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --surface: #1a1a19;
+    --text: #f0efec;
+    --pass: #3fb950;
+    --fail: #f85149;
+    --muted: #8b949e;
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --surface: #1a1a19;
+  --text: #f0efec;
+  --pass: #3fb950;
+  --fail: #f85149;
+  --muted: #8b949e;
+}
+
+body {
+  background: var(--surface);
+  color: var(--text);
+  margin: 0 auto;
+  max-width: 960px;
+  padding: 16px;
+  font: 14px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+#agent {
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.summary {
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.pass {
+  color: var(--pass);
+}
+
+.fail {
+  color: var(--fail);
+}
+
+.error {
+  padding: 8px;
+  border-left: 3px solid var(--fail);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+ol {
+  padding-left: 0;
+  list-style: none;
+}
+
+form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  align-items: center;
+}
+
+.scroll {
+  overflow-x: auto;
+}
+
+table {
+  border-collapse: collapse;
+  white-space: nowrap;
+}
+
+th,
+td {
+  padding: 4px 12px 4px 0;
+  text-align: left;
+}
+
+td:nth-child(3),
+td:nth-child(4) {
+  text-align: right;
+}
+
+textarea {
+  box-sizing: border-box;
+  width: 100%;
+  margin-top: 16px;
+  font: inherit;
+}
+
+.note {
+  color: var(--muted);
+}
+
+figure {
+  margin: 16px 0;
+}
+
+figure svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+figcaption {
+  margin-top: 4px;
+  text-align: right;
+}

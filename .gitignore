@@ -111,3 +111,6 @@ dist
 .DS_Store
 target/
 lib/
+
+# Latest release, downloaded by the benchmark workflow
+.latest/

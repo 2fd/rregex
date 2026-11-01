@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>rregex · benchmarks</title>
+    <link rel="stylesheet" href="./style.css" />
+    <script type="module" src="./bench.mjs"></script>
+  </head>
+  <body>
+    <nav>
+      <a href="./">lib/web.js</a> · <a href="./standalone.html">lib/standalone.js</a> ·
+      <strong>benchmarks</strong>
+    </nav>
+    <p id="agent"></p>
+
+    <form id="options">
+      <label>
+        time per case
+        <select name="time">
+          <option value="250">250 ms</option>
+          <option value="1000" selected>1 s</option>
+          <option value="3000">3 s</option>
+        </select>
+      </label>
+      <label>
+        input
+        <select name="fraction">
+          <option value="0.01">1%</option>
+          <option value="0.1" selected>10%</option>
+          <option value="1">100%</option>
+        </select>
+      </label>
+      <label>
+        theme
+        <select name="theme">
+          <option value="auto" selected>auto</option>
+          <option value="light">light</option>
+          <option value="dark">dark</option>
+        </select>
+      </label>
+      <button name="run" disabled>run</button>
+    </form>
+
+    <p id="status">loading…</p>
+
+    <div id="charts"></div>
+
+    <details class="scroll">
+      <summary>table</summary>
+      <table>
+        <thead>
+          <tr>
+            <th>pattern</th>
+            <th>operation</th>
+            <th>RegExp</th>
+            <th>RRegex</th>
+            <th>summary</th>
+          </tr>
+        </thead>
+        <tbody id="results"></tbody>
+      </table>
+    </details>
+
+    <textarea id="markdown" rows="22" readonly hidden></textarea>
+
+    <p class="note">
+      Same patterns and input (<code>test/__data__/input-text.txt</code>) as
+      <code>bin/bench-compare.mjs</code>. Both engines compile the pattern once, before the
+      benchmark. <code>\w</code> is ASCII in <code>RegExp</code> and Unicode in
+      <code>RRegex</code>. Hover a bar for its numbers.
+    </p>
+  </body>
+</html>
