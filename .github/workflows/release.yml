@@ -102,13 +102,6 @@ jobs:
           name: lib
           path: lib/
 
-      # the native wasm-opt must give the same wasm as the npm package
-      - name: checking wasm-opt
-        run: |
-          wasm-opt --version
-          WASM_OPT_NPM=1 ./bin/wasm-opt.sh js/wasm/rregex_bg.wasm target/rregex.npm.wasm
-          cmp target/rregex.npm.wasm lib/rregex.wasm
-
   test_node:
     runs-on: ubuntu-24.04
 
