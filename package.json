@@ -30,15 +30,16 @@
   },
   "devDependencies": {
     "@semantic-release/exec": "^6.0.3",
+    "@types/node": "^22.10.2",
     "concurrently": "^8.2.2",
-    "semantic-release": "^23.0.6",
+    "semantic-release": "^25.0.0",
     "tinybench": "^2.7.0",
     "toml": "^3.0.0"
   },
   "scripts": {
     "setup": "./bin/install.sh",
     "build": "./bin/build.sh",
-    "test": "wasm-pack test --node && jest --passWithNoTests",
+    "test": "node --test test/node.test.mjs",
     "test:rs": "wasm-pack test",
     "semantic-release": "semantic-release"
   },
@@ -98,6 +99,21 @@
         "name": "1.9.x",
         "range": "1.9.x",
         "channel": "1.9.x"
+      },
+      {
+        "name": "1.10.x",
+        "range": "1.10.x",
+        "channel": "1.10.x"
+      },
+      {
+        "name": "1.11.x",
+        "range": "1.11.x",
+        "channel": "1.11.x"
+      },
+      {
+        "name": "1.12.x",
+        "range": "1.12.x",
+        "channel": "1.12.x"
       },
       {
         "name": "master"

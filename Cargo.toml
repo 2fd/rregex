@@ -12,8 +12,10 @@ repository = "https://github.com/2fd/rregex"
 wasm-opt = false
 
 [dependencies]
-regex = "~1.10"
-regex-syntax = "0.8"
+regex = "=1.10.6"
+regex-syntax = "=0.8.4"
+# Not used directly: pinned so the regex engine matches the locked regex release
+regex-automata = "=0.4.7"
 js-sys = "0.3"
 wasm-bindgen = "0.2"
 
@@ -33,7 +35,7 @@ serde = { version = "1.0", features = ["derive"] }
 serde-wasm-bindgen = "0.6.5"
 
 [dev-dependencies]
-wasm-bindgen-test = "0.3.42"
+wasm-bindgen-test = "0.3.50"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
