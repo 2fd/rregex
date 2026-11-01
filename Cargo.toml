@@ -13,7 +13,8 @@ repository = "https://github.com/2fd/rregex"
 [dependencies]
 regex = "=1.13.1"
 regex-syntax = "=0.8.11"
-# Not used directly: pinned so the regex engine matches the locked regex release
+# Pinned so the regex engine matches the locked regex release. Used directly
+# for `util::iter::Searcher` in `RRegex::captures_all`.
 regex-automata = "=0.4.16"
 wasm-bindgen = "0.2"
 

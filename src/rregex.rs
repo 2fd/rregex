@@ -1,6 +1,6 @@
 use crate::options::{apply_options, RRegexOptions, RegexOptions};
-use crate::types::Hir;
-use crate::types::Match;
+use crate::types::{self, Hir};
+use regex_automata::util::iter::Searcher;
 use regex_syntax::Parser;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsValue;
@@ -174,7 +174,7 @@ impl RRegex {
         let r = self.regex.find_at(text, start);
 
         match r {
-            Some(m) => Ok(Match::from(m).into()),
+            Some(m) => Ok(types::match_to_js(m)),
             None => Ok(JsValue::UNDEFINED),
         }
     }
@@ -199,11 +199,11 @@ impl RRegex {
     /// @returns {Match}
     #[wasm_bindgen(skip_jsdoc, js_name = findAll, unchecked_return_type = "Match[]")]
     pub fn find_all(&self, text: &str) -> Result<JsValue> {
-        let matches = crate::js::Array::new();
+        let matches = types::array();
         for m in self.regex.find_iter(text) {
-            matches.push(&JsValue::from(Match::from(m)));
+            types::push_match_to_js(&matches, m);
         }
-        Ok(matches.into())
+        Ok(matches)
     }
 
     /// Returns a list of the capture names in this regex.
@@ -268,11 +268,12 @@ impl RRegex {
     /// @returns {Captures|undefined}
     #[wasm_bindgen(skip_jsdoc, unchecked_return_type = "Captures | undefined")]
     pub fn captures(&self, text: &str) -> Result<JsValue> {
-        if let Some(captures) = self.regex.captures(text) {
-            Match::captures(captures, self.regex.capture_names())
-        } else {
-            Ok(JsValue::UNDEFINED)
+        let mut locs = self.regex.capture_locations();
+        if self.regex.captures_read_at(&mut locs, text, 0).is_none() {
+            return Ok(JsValue::UNDEFINED);
         }
+        let names = types::capture_names_to_js(self.regex.capture_names());
+        Ok(types::captures_to_js(text, &locs, &names))
     }
 
     /// Returns a list with all the non-overlapping capture groups matched
@@ -306,14 +307,27 @@ impl RRegex {
     /// @returns {Captures[]}
     #[wasm_bindgen(skip_jsdoc, js_name = capturesAll, unchecked_return_type = "Captures[]")]
     pub fn captures_all(&self, text: &str) -> Result<JsValue> {
-        let names = self.regex.capture_names();
-        let result = crate::js::Array::new();
-        for captures in self.regex.captures_iter(text) {
-            let c = Match::captures(captures, names.clone())?;
-            result.push(&c);
+        let result = types::array();
+        let mut names = None;
+        // The same iteration as `Regex::captures_iter` (which also uses a
+        // `Searcher`, including its handling of empty matches), but one
+        // `CaptureLocations` is reused instead of a new `Captures` per match.
+        let mut locs = self.regex.capture_locations();
+        let mut it = Searcher::new(regex_automata::Input::new(text));
+        while it
+            .advance(|input| {
+                Ok(self
+                    .regex
+                    .captures_read_at(&mut locs, text, input.start())
+                    .map(|m| regex_automata::Match::must(0, m.start()..m.end())))
+            })
+            .is_some()
+        {
+            let names = names.get_or_insert_with(|| types::capture_names_to_js(self.regex.capture_names()));
+            types::push(&result, &types::captures_to_js(text, &locs, names));
         }
 
-        Ok(JsValue::from(result))
+        Ok(result)
     }
 
     /// Returns the number of captures.

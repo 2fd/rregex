@@ -8,9 +8,6 @@ extern "C" {
     #[derive(Clone, Debug)]
     pub type Object;
 
-    #[wasm_bindgen(constructor)]
-    pub fn new() -> Object;
-
     #[wasm_bindgen(static_method_of = Object)]
     pub fn keys(object: &Object) -> Array;
 
@@ -18,31 +15,14 @@ extern "C" {
     #[derive(Clone, Debug)]
     pub type Array;
 
-    #[wasm_bindgen(constructor)]
-    pub fn new() -> Array;
-
-    #[wasm_bindgen(static_method_of = Array, js_name = of)]
-    pub fn of1(a: &JsValue) -> Array;
-
-    #[wasm_bindgen(method)]
-    pub fn push(this: &Array, value: &JsValue) -> u32;
-
     #[wasm_bindgen(method, getter, structural)]
     pub fn length(this: &Array) -> u32;
 
     #[wasm_bindgen(method, structural, indexing_getter)]
     pub fn get(this: &Array, index: u32) -> JsValue;
 
-    /// `new Uint8Array(view)`: copies the bytes out of wasm memory.
-    #[wasm_bindgen(js_name = Uint8Array)]
-    pub type Uint8Array;
-
-    #[wasm_bindgen(constructor)]
-    pub fn new(bytes: &[u8]) -> Uint8Array;
-
+    /// A `catch` import: it keeps `__wbindgen_exn_store` in the wasm exports
+    /// (`InitOutput` in the generated `.d.ts`).
     #[wasm_bindgen(js_namespace = Reflect, js_name = get, catch)]
     pub fn reflect_get(target: &JsValue, key: &JsValue) -> Result<JsValue, JsValue>;
-
-    #[wasm_bindgen(js_namespace = Reflect, js_name = set, catch)]
-    pub fn reflect_set(target: &JsValue, key: &JsValue, value: &JsValue) -> Result<bool, JsValue>;
 }
