@@ -31,7 +31,6 @@ jobs:
     env:
       BASE_SHA: ${{ github.event.pull_request.base.sha }}
       HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-      REPORT_DIR: ${{ runner.temp }}/benchmark
 
     steps:
       # head must be checked out first: checkout cleans the workspace root
@@ -85,6 +84,7 @@ jobs:
 
       - name: running benchmarks
         run: |
+          REPORT_DIR="$RUNNER_TEMP/benchmark"
           mkdir -p "$REPORT_DIR"
           node bin/bench-compare.mjs \
             --base .base/lib \
@@ -98,5 +98,5 @@ jobs:
       - uses: actions/upload-artifact@v7
         with:
           name: benchmark
-          path: ${{ env.REPORT_DIR }}
+          path: ${{ runner.temp }}/benchmark
           retention-days: 7
