@@ -8,6 +8,7 @@ A dependency-free WebAssembly build of [Rust Regex](https://docs.rs/regex/latest
 - [Why Rust Regex](#why-rust-regex)
 - [Install](#install)
 - [Supported Runtimes](#supported-runtimes)
+- [Options](#options)
 - [API](https://tsdocs.dev/docs/rregex/latest)
   - [`RRegex`](https://tsdocs.dev/docs/rregex/latest/classes/RRegex.html)
   - [`RRegexSet`](https://tsdocs.dev/docs/rregex/latest/classes/RRegexSet.html)
@@ -75,6 +76,26 @@ import { init, initSync, RRegex } from "rregex/core";
 initSync({ module: wasmBytes });
 await init({ module_or_path: fetch(wasmUrl) });
 ```
+
+## Options
+
+`RRegex` and `RRegexSet` accept an optional second argument. The options only
+apply to that instance.
+
+| Option         | Default | Description                                                                           |
+| -------------- | ------- | ------------------------------------------------------------------------------------- |
+| `sizeLimit`    | 10 MiB  | Size limit of the compiled regex. If the regex is bigger, the constructor throws.     |
+| `dfaSizeLimit` | 2 MiB   | Cache size of the lazy DFA. A bigger cache can make searches on big patterns faster. |
+| `nestLimit`    | 250     | Nesting limit of the parser. If the pattern is nested deeper, the constructor throws. |
+
+```ts
+// Unicode classes make this pattern exceed the default 10 MiB size limit
+new RRegex("\\w{200}\\s\\w{200}\\s\\w{200}"); // throws: Compiled regex exceeds size limit
+new RRegex("\\w{200}\\s\\w{200}\\s\\w{200}", { sizeLimit: 200 * 1024 * 1024 }); // ok
+```
+
+The compiled regex uses WebAssembly memory, which does not shrink after the
+instance is freed. Increase the limits only for the patterns that need them.
 
 ## Benchmarks
 

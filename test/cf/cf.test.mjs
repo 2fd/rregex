@@ -1,4 +1,4 @@
-import { deepEqual } from 'node:assert';
+import { deepEqual, throws } from 'node:assert';
 import { RRegex, RRegexSet } from 'rregex/lib/cf';
 
 export const r_regex_to_string = {
@@ -1166,5 +1166,14 @@ export const captures_toady = {
 		deepEqual(caps.name['first'].value, 't');
 		deepEqual(caps.get[2].value, 'o');
 		deepEqual(caps.name['last'].value, 'y');
+	},
+};
+
+export const r_regex_options_size_limit = {
+	test: () => {
+		const big = '\\w{200}\\s\\w{200}\\s\\w{200}';
+		throws(() => new RRegex(big), /exceeds size limit/);
+		deepEqual(new RRegex(big, { sizeLimit: 200 * 1024 * 1024 }).isMatch('a'), false);
+		deepEqual(new RRegexSet([big, 'a'], { sizeLimit: 200 * 1024 * 1024 }).matches('a'), [1]);
 	},
 };

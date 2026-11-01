@@ -1,3 +1,4 @@
+use crate::options::{apply_options, RRegexOptions, RegexOptions};
 use crate::types::Hir;
 use crate::types::Match;
 use regex_syntax::Parser;
@@ -63,11 +64,20 @@ impl RRegex {
     /// to search, split or replace text in a string.
     ///
     /// If an invalid expression is given, then an error is returned.
+    /// Options only apply to this instance, see `RRegexOptions`.
     #[wasm_bindgen(constructor)]
-    pub fn new(re: &str) -> Result<RRegex> {
-        let r = regex::Regex::new(re).map_err(error)?;
+    pub fn new(
+        re: &str,
+        options: Option<RRegexOptions>,
+    ) -> Result<RRegex> {
+        let options = RegexOptions::from_js(options)?;
+        let mut builder = regex::RegexBuilder::new(re);
+        apply_options!(&mut builder, &options);
+        let regex = builder
+            .build()
+            .map_err(error)?;
 
-        Ok(RRegex { regex: r })
+        Ok(RRegex { regex })
     }
 
     /// Returns true if and only if there is a match for the regex in the

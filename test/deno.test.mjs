@@ -1,4 +1,4 @@
-import { assertEquals } from "https://deno.land/std@0.221.0/assert/mod.ts";
+import { assertEquals, assertThrows } from "https://deno.land/std@0.221.0/assert/mod.ts";
 import { RRegex, RRegexSet } from '../lib/esm.mjs'
 
 Deno.test(`RRegex::toString`, () => {
@@ -1128,4 +1128,33 @@ Deno.test("Captures -> toady", () => {
   assertEquals(caps.name["first"].value, "t");
   assertEquals(caps.get[2].value, "o");
   assertEquals(caps.name["last"].value, "y");
+})
+
+// \w is Unicode-aware, so this pattern compiles to more than the default 10 MiB size limit
+const BIG = '\\w{200}\\s\\w{200}\\s\\w{200}'
+
+Deno.test(`RRegex options: sizeLimit`, () => {
+  assertThrows(() => new RRegex(BIG), Error, "exceeds size limit")
+  assertThrows(() => new RRegex(BIG, {}), Error, "exceeds size limit")
+  assertThrows(() => new RRegex(BIG, { sizeLimit: 1024 }), Error, "exceeds size limit of 1024 bytes")
+  assertEquals(new RRegex(BIG, { sizeLimit: 200 * 1024 * 1024 }).isMatch('a'), false)
+  assertEquals(new RRegex('a', undefined).isMatch('a'), true)
+  assertEquals(new RRegex('a', null).isMatch('a'), true)
+})
+
+Deno.test(`RRegex options: dfaSizeLimit and nestLimit`, () => {
+  assertEquals(new RRegex('a+', { dfaSizeLimit: 16 * 1024 * 1024 }).find('baa').value, 'aa')
+  assertThrows(() => new RRegex('((a))', { nestLimit: 1 }), Error, "nested")
+  assertEquals(new RRegex('((a))', { nestLimit: 2 }).isMatch('a'), true)
+})
+
+Deno.test(`RRegex options: invalid values`, () => {
+  assertThrows(() => new RRegex('a', { sizeLimit: -1 }))
+  assertThrows(() => new RRegex('a', { sizeLimit: 1.5 }))
+  assertThrows(() => new RRegex('a', { sizelimit: 1024 }), Error, "unknown field")
+})
+
+Deno.test(`RRegexSet options: sizeLimit`, () => {
+  assertThrows(() => new RRegexSet([BIG, 'a']), Error, "exceeds size limit")
+  assertEquals(new RRegexSet([BIG, 'a'], { sizeLimit: 200 * 1024 * 1024 }).matches('a'), [1])
 })
