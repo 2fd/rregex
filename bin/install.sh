@@ -17,13 +17,23 @@ echo ""
 
 rustup target add wasm32-unknown-unknown
 
+## prebuilt binaries with cargo-binstall when it is installed;
+## `cargo install` compiles each one (~1-2 min)
+cargo_install() {
+  if cargo binstall -V > /dev/null 2>&1; then
+    cargo binstall --no-confirm "$@"
+  else
+    cargo install "$@"
+  fi
+}
+
 ## wasm-bindgen-cli must match the wasm-bindgen crate version in Cargo.lock
 WASM_BINDGEN_REQUIRED=$(grep -A1 '^name = "wasm-bindgen"$' Cargo.lock | sed -n 's/^version = "\(.*\)"$/\1/p')
 WASM_BINDGEN_VERSION=$(wasm-bindgen --version 2> /dev/null | cut -d' ' -f2 || true)
 
 if [ "$WASM_BINDGEN_VERSION" != "$WASM_BINDGEN_REQUIRED" ]; then
   echo "    📥 installing wasm-bindgen-cli $WASM_BINDGEN_REQUIRED"
-  cargo install wasm-bindgen-cli --version "$WASM_BINDGEN_REQUIRED" --locked --force
+  cargo_install wasm-bindgen-cli --version "$WASM_BINDGEN_REQUIRED" --locked --force
 fi
 
 echo "    ✅ wasm-bindgen $(wasm-bindgen --version | cut -d' ' -f2) ($(which wasm-bindgen))"
@@ -34,7 +44,7 @@ WASM_PACK_VERSION=$(wasm-pack --version 2> /dev/null || true)
 ## wasm-pack is only used to run the Rust tests (pnpm test:rs)
 if [ "$WASM_PACK_VERSION" = "" ]; then
   echo "    📥 installing wasm-pack"
-  cargo install wasm-pack
+  cargo_install wasm-pack
   WASM_PACK_VERSION=$(wasm-pack --version)
 fi
 
