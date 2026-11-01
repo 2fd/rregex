@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>rregex · standalone</title>
+    <link rel="stylesheet" href="./style.css" />
+    <script src="../../lib/standalone.js"></script>
+    <script type="importmap">
+      {
+        "imports": {
+          "node:test": "./harness.mjs",
+          "node:assert": "./assert.mjs",
+          "/lib/esm.mjs": "./standalone.mjs"
+        }
+      }
+    </script>
+    <script type="module" src="./run.mjs"></script>
+  </head>
+  <body>
+    <nav>
+      <a href="./">lib/web.js</a> · <strong>lib/standalone.js</strong> ·
+      <a href="./bench.html">benchmarks</a>
+    </nav>
+    <p id="agent"></p>
+    <main id="report">running…</main>
+  </body>
+</html>
