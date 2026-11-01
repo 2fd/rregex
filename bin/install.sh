@@ -40,3 +40,15 @@ fi
 
 echo "    ✅ $WASM_PACK_VERSION ($(which wasm-pack))"
 echo ""
+
+## native wasm-opt with the version of the binaryen npm package (bin/wasm-opt.sh)
+BINARYEN_REQUIRED="version_$(node -p 'require("./node_modules/binaryen/package.json").version.split(".")[0]')"
+WASM_OPT="target/binaryen/binaryen-$BINARYEN_REQUIRED/bin/wasm-opt"
+
+if [ ! -x "$WASM_OPT" ]; then
+  echo "    📥 installing binaryen $BINARYEN_REQUIRED"
+  ./bin/install-binaryen.sh target/binaryen > /dev/null
+fi
+
+echo "    ✅ $("$WASM_OPT" --version) ($WASM_OPT)"
+echo ""

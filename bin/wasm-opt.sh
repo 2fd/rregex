@@ -4,7 +4,8 @@
 # Optimizes the wasm with binaryen. It prefers a native `wasm-opt` with the
 # same version as the `binaryen` npm package: same output, but multi-threaded
 # and ~10x faster than the npm package, which is an emscripten (JS) build.
-# Without one, it uses the npm package.
+# It looks for it in PATH and in target/binaryen (`pnpm setup` installs it
+# there). Without one, it uses the npm package.
 #
 # WASM_OPT_NPM=1 always uses the npm package.
 set -euo pipefail
@@ -31,7 +32,10 @@ native_wasm_opt() {
       echo "$bin"
       return
     fi
-  done < <(type -ap wasm-opt)
+  done < <(
+    type -ap wasm-opt || true
+    echo "$PWD/target/binaryen/binaryen-version_$VERSION/bin/wasm-opt"
+  )
 }
 
 NATIVE=""
@@ -44,7 +48,7 @@ if [ -n "$NATIVE" ]; then
   "$NATIVE" "${FLAGS[@]}" "$1" -o "$2"
 else
   if [ "${WASM_OPT_NPM:-}" != "1" ]; then
-    echo "      native wasm-opt version_$VERSION not found, using the npm package (slower)"
+    echo "      native wasm-opt version_$VERSION not found, using the npm package (slower, run \`pnpm setup\`)"
   fi
   pnpm exec wasm-opt "${FLAGS[@]}" "$1" -o "$2"
 fi
