@@ -1,15 +1,12 @@
-//! Builds the plain JS values returned by `RRegex` directly with `js_sys`,
+//! Builds the plain JS values returned by `RRegex` directly with the local `js` bindings,
 //! without `serde`. The output must stay identical to the previous
 //! `serde_wasm_bindgen::to_value` output: same keys, same key order, same
 //! value types (`undefined` for `None`, `Uint8Array` for bytes).
-use js_sys::{Array, Object, Uint8Array};
+use crate::js::{Array, Object, Uint8Array};
 use regex_syntax::hir;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 
-// Note: an `inline_js` constructor (`{ start, end, value }` in one call) is
-// not used because JS snippets are not supported by `--target no-modules`
-// (`lib/standalone.js`) and `bin/build.sh` ships a single JS file per target.
 #[wasm_bindgen]
 extern "C" {
     /// A plain JS object with infallible (non-`catch`) property setters.
@@ -246,7 +243,7 @@ impl<'t> Match<'t> {
 
             if let Some(n) = name {
                 if let Some(m) = captures.name(n) {
-                    js_sys::Reflect::set(&names, &JsValue::from_str(n), &JsValue::from(Match::from(m)))?;
+                    crate::js::reflect_set(&names, &JsValue::from_str(n), &JsValue::from(Match::from(m)))?;
                 }
             }
         }
@@ -474,7 +471,7 @@ export type Literal = {
 impl ToJs for Hir<&hir::Literal> {
     fn to_js(&self, k: &Keys) -> JsValue {
         let o = node(k, &k.struct_, "regex_syntax::hir::Literal");
-        let bytes = Uint8Array::from(self.0 .0.as_ref());
+        let bytes = Uint8Array::new(self.0 .0.as_ref());
         o.set(&k.values, &Array::of1(&bytes));
         o.into()
     }

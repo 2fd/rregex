@@ -199,7 +199,7 @@ impl RRegex {
     /// @returns {Match}
     #[wasm_bindgen(skip_jsdoc, js_name = findAll, unchecked_return_type = "Match[]")]
     pub fn find_all(&self, text: &str) -> Result<JsValue> {
-        let matches = js_sys::Array::new();
+        let matches = crate::js::Array::new();
         for m in self.regex.find_iter(text) {
             matches.push(&JsValue::from(Match::from(m)));
         }
@@ -307,7 +307,7 @@ impl RRegex {
     #[wasm_bindgen(skip_jsdoc, js_name = capturesAll, unchecked_return_type = "Captures[]")]
     pub fn captures_all(&self, text: &str) -> Result<JsValue> {
         let names = self.regex.capture_names();
-        let result = js_sys::Array::new();
+        let result = crate::js::Array::new();
         for captures in self.regex.captures_iter(text) {
             let c = Match::captures(captures, names.clone())?;
             result.push(&c);

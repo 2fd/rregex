@@ -132,7 +132,6 @@ name = "rregex"
 version = "1.10.0"
 dependencies = [
  "console_error_panic_hook",
- "js-sys",
  "regex",
  "regex-automata",
  "regex-syntax",
