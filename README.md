@@ -43,6 +43,12 @@ Rust has a powerful Regex library with a lot of features that don't exists en th
   npx jsr add @rregex/rregex
 ```
 
+## Versioning
+
+The `major.minor` of `rregex` is the `major.minor` of the Rust `regex` crate it ships: `rregex@1.13.*` runs `regex` 1.13.*. Each older minor has its own release line (`npm install rregex@1.12`). The patch number belongs to `rregex`: any change to the bindings, including breaking changes to the JavaScript API, is released as a patch.
+
+Only a commit typed `feat(regex):` (a `regex` minor upgrade) releases a new minor. `bin/check-release-version.sh` stops a release whose version does not match the locked `regex` version.
+
 ## Supported Runtimes
 
 This package includes builds for multiple runtimes
