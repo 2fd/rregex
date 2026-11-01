@@ -12,3 +12,8 @@ updates:
       interval: "daily"
     reviewers:
       - "2fd"
+    # regex engine crates are pinned per release line and upgraded manually
+    ignore:
+      - dependency-name: "regex"
+      - dependency-name: "regex-syntax"
+      - dependency-name: "regex-automata"
