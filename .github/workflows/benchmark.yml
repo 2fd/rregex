@@ -1,14 +1,19 @@
 name: benchmark
 
-# Runs the benchmarks of the PR against the latest release on npm and posts
-# the report as a PR comment (one comment, kept up to date). PRs from forks and
-# dependabot get a read-only token, so the `benchmark comment` workflow posts
-# for them.
+# Compares the PR against the latest release on npm and posts two PR comments
+# (each one kept up to date):
+# - the benchmarks of every runtime;
+# - the changes in the public API (type declarations and package.json entry
+#   points). Posted only when the API changes, or to update an earlier one.
+# PRs from forks and dependabot get a read-only token, so the
+# `benchmark comment` workflow posts for them.
 
 on:
   pull_request:
     branches:
       - master
+    # every input of the build, so a PR that skips the workflow cannot change
+    # the API either
     paths:
       - "src/**"
       - "Cargo.toml"
@@ -19,10 +24,12 @@ on:
       - "bin/wasm-opt.sh"
       - "bin/install-binaryen.sh"
       - "js/**"
+      - "tsconfig.json"
       - "tsdown.config.ts"
       - "bin/bench-*.mjs"
+      - "bin/api-diff.mjs"
       - "test/browser/**"
-      - ".github/scripts/benchmark-comment.cjs"
+      - ".github/scripts/pr-comment.cjs"
       - ".github/workflows/benchmark.yml"
 
 concurrency:
@@ -82,8 +89,8 @@ jobs:
           curl -fsSL -o "$RUNNER_TEMP/rregex.tgz" "$(jq -r .dist.tarball <<< "$meta")"
           test "sha512-$(openssl dgst -sha512 -binary "$RUNNER_TEMP/rregex.tgz" | base64 -w0)" = "$(jq -r .dist.integrity <<< "$meta")"
           mkdir -p .latest
-          tar xzf "$RUNNER_TEMP/rregex.tgz" -C .latest --strip-components=1 package/lib
-          test -f .latest/lib/esm.mjs -a -f .latest/lib/rregex.wasm
+          tar xzf "$RUNNER_TEMP/rregex.tgz" -C .latest --strip-components=1 package/lib package/package.json
+          test -f .latest/lib/esm.mjs -a -f .latest/lib/rregex.wasm -a -f .latest/package.json
           echo "version=$(jq -r .version <<< "$meta")" >> "$GITHUB_OUTPUT"
 
       - name: installing
@@ -114,6 +121,7 @@ jobs:
           path: |
             lib/
             .latest/lib/
+            .latest/package.json
             build.json
           include-hidden-files: true # .latest
           if-no-files-found: error
@@ -176,6 +184,101 @@ jobs:
           path: ${{ runner.temp }}/benchmark/${{ matrix.runtime }}.json
           if-no-files-found: error
           retention-days: 1
+
+  # the public API of head vs the latest release, next to the benchmarks
+  api:
+    needs: build
+
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+
+    env:
+      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      LATEST_VERSION: ${{ needs.build.outputs.latest }}
+
+    steps:
+      # api-diff.mjs only needs bin/, package.json, Node and git
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: bin
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "26"
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: bench-libs
+
+      - name: comparing the public API
+        env:
+          REPORT_DIR: ${{ runner.temp }}/api
+        run: |
+          mkdir -p "$REPORT_DIR"
+          node bin/api-diff.mjs \
+            --base .latest/lib \
+            --head lib \
+            --base-package .latest/package.json \
+            --head-package package.json \
+            --base-label "\`rregex@${LATEST_VERSION}\` (npm latest)" \
+            --head-label "\`${HEAD_SHA::7}\`" \
+            --markdown "$REPORT_DIR/report.md" \
+            --json "$REPORT_DIR/api.json"
+          cat "$REPORT_DIR/report.md" >> "$GITHUB_STEP_SUMMARY"
+
+      # the `benchmark comment` workflow downloads it by this name
+      - uses: actions/upload-artifact@v7
+        with:
+          name: api
+          path: ${{ runner.temp }}/api
+          retention-days: 7
+
+  api_comment:
+    # PRs from this repository only, see `benchmark comment` for the others
+    if: >-
+      needs.api.result == 'success' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.user.login != 'dependabot[bot]'
+
+    needs: api
+
+    runs-on: ubuntu-24.04
+
+    permissions:
+      contents: read
+      pull-requests: write # to create and update the comment
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: .github/scripts
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: api
+          path: ${{ runner.temp }}/api
+
+      # a new comment only when the API changes; an earlier one is updated
+      # either way, so it does not show changes that the PR no longer has
+      - uses: actions/github-script@v9
+        with:
+          script: |
+            const fs = require('node:fs');
+            const dir = `${process.env.RUNNER_TEMP}/api`;
+            const { changed } = JSON.parse(fs.readFileSync(`${dir}/api.json`, 'utf8'));
+            await require('./.github/scripts/pr-comment.cjs')({
+              github,
+              context,
+              core,
+              marker: '<!-- rregex-api -->',
+              title: '🧩 Public API changes',
+              pr: context.payload.pull_request.number,
+              sha: context.payload.pull_request.head.sha,
+              runUrl: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+              success: true,
+              reportPath: `${dir}/report.md`,
+              create: changed === true,
+            });
 
   report:
     needs: [build, bench]
@@ -265,10 +368,12 @@ jobs:
           SUCCESS: ${{ needs.report.result == 'success' }}
         with:
           script: |
-            await require('./.github/scripts/benchmark-comment.cjs')({
+            await require('./.github/scripts/pr-comment.cjs')({
               github,
               context,
               core,
+              marker: '<!-- rregex-benchmark -->',
+              title: '⏱️ Benchmark results',
               pr: context.payload.pull_request.number,
               sha: context.payload.pull_request.head.sha,
               runUrl: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
