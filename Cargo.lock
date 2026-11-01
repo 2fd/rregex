@@ -152,6 +152,7 @@ dependencies = [
  "console_error_panic_hook",
  "js-sys",
  "regex",
+ "regex-automata",
  "regex-syntax",
  "serde",
  "serde-wasm-bindgen",

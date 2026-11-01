@@ -101,6 +101,21 @@
         "channel": "1.9.x"
       },
       {
+        "name": "1.10.x",
+        "range": "1.10.x",
+        "channel": "1.10.x"
+      },
+      {
+        "name": "1.11.x",
+        "range": "1.11.x",
+        "channel": "1.11.x"
+      },
+      {
+        "name": "1.12.x",
+        "range": "1.12.x",
+        "channel": "1.12.x"
+      },
+      {
         "name": "master"
       }
     ],
