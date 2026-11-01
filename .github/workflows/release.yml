@@ -1,46 +1,263 @@
 name: release
 
 on:
-  push:
+  pull_request:
     branches:
       - master
+      - 1.12.x
+      - 1.11.x
+      - 1.10.x
+      - 1.9.x
+      - 1.8.x
+      - 1.7.x
+      - 1.6.x
+      - 1.5.x
+      - 1.4.x
+      - 1.3.x
       - 1.2.x
       - 1.1.x
       - 1.0.x
 
+  push:
+    branches:
+      - master
+      - 1.12.x
+      - 1.11.x
+      - 1.10.x
+      - 1.9.x
+      - 1.8.x
+      - 1.7.x
+      - 1.6.x
+      - 1.5.x
+      - 1.4.x
+      - 1.3.x
+      - 1.2.x
+      - 1.1.x
+      - 1.0.x
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
-  release:
-    runs-on: ubuntu-20.04
+  build:
+    runs-on: ubuntu-24.04
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v7
 
-      - name: node.js 16
-        uses: actions/setup-node@v2
+      - uses: pnpm/action-setup@v6
         with:
-          node-version: 16
+          version: 11
+
+      - name: Run actions/setup-node@v7
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24"
           registry-url: https://registry.npmjs.org/
+          cache: pnpm
+
+      - uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: checking regex engine versions
+        run: ./bin/check-regex-deps.sh
 
       - name: installing
-        run: npm run setup && npm ci
+        run: pnpm install --frozen-lockfile
+
+      - name: setup
+        run: node --run setup
 
       - name: testing wasm
-        run: npm run test:rs -- --node
+        run: node --run test:rs -- --node
 
       - name: building
-        run: npm run build
+        run: node --run build
 
-      - name: testing builded files
-        run: npm run test:ts
+      - uses: actions/upload-artifact@v7
+        with:
+          name: lib
+          path: lib/
 
-      # TODO: add coverage service
-      # - name: uploading to codecov
-      #   uses: codecov/codecov-action@v1.0.2
-      #   with:
-      #     token: ${{secrets.CODECOV_TOKEN}}
+  test_node:
+    runs-on: ubuntu-24.04
 
-      - name: releasing
-        run: npm run semantic-release
+    needs: build
+
+    strategy:
+      matrix:
+        version: ["22", "24", "26"]
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Run actions/setup-node@v7 (${{ matrix.version }})
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.version }}
+          registry-url: https://registry.npmjs.org/
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: lib
+          path: lib
+
+      - run: node lib/commonjs.cjs
+      - run: node lib/esm.mjs
+      - run: node --test test/node.test.cjs
+      - run: node --test test/node.test.mjs
+
+  test_bun:
+    runs-on: ubuntu-24.04
+
+    needs: build
+
+    strategy:
+      matrix:
+        version: ["1.0", "1.1", "1.2", "1.3"]
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Run oven-sh/setup-bun@v2 (${{ matrix.version }})
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ matrix.version }}
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: lib
+          path: lib
+
+      - run: bun lib/commonjs.cjs
+      - run: bun lib/esm.mjs
+      - run: bun test test/bun.test.cjs
+      - run: bun test test/bun.test.mjs
+
+  test_deno:
+    runs-on: ubuntu-24.04
+
+    needs: build
+
+    strategy:
+      matrix:
+        version: ["1.x", "2.x"]
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Run denoland/setup-deno@v2 (${{ matrix.version }})
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: "v${{ matrix.version }}"
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: lib
+          path: lib
+
+      - run: deno install
+        if: ${{ matrix.version != '1.x' }}
+
+      - run: deno run --allow-read=lib/rregex.wasm lib/esm.mjs
+
+      - run: deno test --allow-read=lib/rregex.wasm test/deno.test.mjs
+
+  test_cf:
+    runs-on: ubuntu-24.04
+
+    needs: build
+
+    strategy:
+      matrix:
+        version: ["4.x"]
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 11
+
+      - name: Run actions/setup-node@v7
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          registry-url: https://registry.npmjs.org/
+          cache: pnpm
+          cache-dependency-path: test/cf/pnpm-lock.yaml
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: lib
+          path: lib
+
+      - run: pnpm install --frozen-lockfile
+        working-directory: ./test/cf
+
+      - run: node --run test
+        working-directory: ./test/cf
+
+  publish:
+
+    if: ${{ github.event_name != 'pull_request' }}
+
+    runs-on: ubuntu-24.04
+
+    environment:
+      name: release
+      url: ${{ steps.release_url.outputs.url }}
+
+    permissions:
+      contents: write # to be able to publish a GitHub release
+      issues: write # to be able to comment on released issues
+      pull-requests: write # to be able to comment on released pull requests
+      id-token: write # to enable use of OIDC for npm provenance
+
+    needs:
+      - test_node
+      - test_bun
+      - test_deno
+      - test_cf
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 11
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          registry-url: https://registry.npmjs.org/
+          cache: pnpm
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: lib
+          path: lib
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: node --run semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
+
+      - name: set release url
+        id: release_url
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          if [ "$version" = "0.0.0-development" ]; then
+            echo "url=https://www.npmjs.com/package/rregex" >> "$GITHUB_OUTPUT"
+          else
+            echo "url=https://www.npmjs.com/package/rregex/v/$version" >> "$GITHUB_OUTPUT"
+          fi

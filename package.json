@@ -1,39 +1,157 @@
 {
   "name": "rregex",
   "version": "0.0.0-development",
-  "description": "Rust Regex binding for Javascript",
+  "description": "A dependency-free WebAssembly build of Rust Regex for Javascript",
   "private": false,
-  "main": "./lib/commonjs.js",
-  "browser": "./lib/browser.js",
-  "module": "./lib/module.js",
-  "types": "./lib/types.d.ts",
+  "type": "module",
+  "main": "./lib/commonjs.cjs",
+  "types": "./lib/commonjs.d.cts",
+  "module": "./lib/esm.mjs",
+  "browser": "./lib/web.js",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "import": {
+        "types": "./lib/esm.d.ts",
+        "default": "./lib/esm.mjs"
+      },
+      "require": {
+        "types": "./lib/commonjs.d.cts",
+        "default": "./lib/commonjs.cjs"
+      },
+      "browser": {
+        "types": "./lib/web.d.ts",
+        "default": "./lib/web.js"
+      }
+    }
+  },
+  "publishConfig": {
+    "provenance": true
+  },
   "devDependencies": {
-    "@babel/plugin-proposal-class-properties": "^7.16.0",
-    "@babel/preset-env": "^7.16.4",
-    "@babel/preset-typescript": "^7.16.0",
-    "@types/jest": "^27.0.3",
-    "@types/node": "^16.11.11",
-    "babel-jest": "^27.4.2",
-    "jest": "^27.4.3",
-    "semantic-release": "^18.0.1",
-    "toml": "^3.0.0",
-    "typescript": "^4.5.2"
+    "@semantic-release/exec": "^6.0.3",
+    "@types/node": "^22.10.2",
+    "concurrently": "^8.2.2",
+    "semantic-release": "^25.0.0",
+    "tinybench": "^2.7.0",
+    "toml": "^3.0.0"
   },
   "scripts": {
     "setup": "./bin/install.sh",
     "build": "./bin/build.sh",
-    "test": "wasm-pack test  --node && jest --passWithNoTests",
+    "test": "node --test test/node.test.mjs",
     "test:rs": "wasm-pack test",
-    "test:ts": "jest",
     "semantic-release": "semantic-release"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "testRegex": "node\\.test\\.[cm]js$"
   },
   "release": {
     "ci": false,
     "branches": [
-      { "name": "1.0.x", "range": "1.0.x", "channel": "1.0.x"},
-      { "name": "1.1.x", "range": "1.1.x", "channel": "1.1.x"},
-      { "name": "1.2.x", "range": "1.2.x", "channel": "1.2.x"},
-      { "name": "master" }
+      {
+        "name": "1.0.x",
+        "range": "1.0.x",
+        "channel": "1.0.x"
+      },
+      {
+        "name": "1.1.x",
+        "range": "1.1.x",
+        "channel": "1.1.x"
+      },
+      {
+        "name": "1.2.x",
+        "range": "1.2.x",
+        "channel": "1.2.x"
+      },
+      {
+        "name": "1.3.x",
+        "range": "1.3.x",
+        "channel": "1.3.x"
+      },
+      {
+        "name": "1.4.x",
+        "range": "1.4.x",
+        "channel": "1.4.x"
+      },
+      {
+        "name": "1.5.x",
+        "range": "1.5.x",
+        "channel": "1.5.x"
+      },
+      {
+        "name": "1.6.x",
+        "range": "1.6.x",
+        "channel": "1.6.x"
+      },
+      {
+        "name": "1.7.x",
+        "range": "1.7.x",
+        "channel": "1.7.x"
+      },
+      {
+        "name": "1.8.x",
+        "range": "1.8.x",
+        "channel": "1.8.x"
+      },
+      {
+        "name": "1.9.x",
+        "range": "1.9.x",
+        "channel": "1.9.x"
+      },
+      {
+        "name": "1.10.x",
+        "range": "1.10.x",
+        "channel": "1.10.x"
+      },
+      {
+        "name": "1.11.x",
+        "range": "1.11.x",
+        "channel": "1.11.x"
+      },
+      {
+        "name": "1.12.x",
+        "range": "1.12.x",
+        "channel": "1.12.x"
+      },
+      {
+        "name": "master"
+      }
+    ],
+    "plugins": [
+      "@semantic-release/commit-analyzer",
+      "@semantic-release/release-notes-generator",
+      "@semantic-release/npm",
+      [
+        "@semantic-release/github",
+        {
+          "assets": [
+            {
+              "path": "lib/standalone.js",
+              "label": "standalone.js"
+            },
+            {
+              "path": "lib/esm.mjs",
+              "label": "esm.js"
+            },
+            {
+              "path": "lib/esm.d.ts",
+              "label": "esm.d.ts"
+            },
+            {
+              "path": "lib/rregex.wasm",
+              "label": "rregex.wasm"
+            }
+          ]
+        }
+      ],
+      [
+        "@semantic-release/exec",
+        {
+          "publishCmd": "node bin/jsr.mjs ${nextRelease.version} && npx jsr publish --allow-dirty"
+        }
+      ]
     ]
   },
   "repository": {
