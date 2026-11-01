@@ -1,99 +1,118 @@
-//! Builds the plain JS values returned by `RRegex` directly with the local `js` bindings,
-//! without `serde`. The output must stay identical to the previous
+//! Builds the plain JS values returned by `RRegex` directly, without `serde`.
+//! The output must stay identical to the previous
 //! `serde_wasm_bindgen::to_value` output: same keys, same key order, same
 //! value types (`undefined` for `None`, `Uint8Array` for bytes).
-use crate::js::{Array, Object, Uint8Array};
+//!
+//! Each object is created by one call to a JS function that returns an object
+//! literal, instead of one call per property. The literal gives every object
+//! of a kind the same shape, and static keys and values (`@type`, `@name`)
+//! never cross the wasm boundary.
 use regex_syntax::hir;
 use wasm_bindgen::prelude::*;
-use wasm_bindgen::JsCast;
 
-#[wasm_bindgen]
+// `inline_js` is emitted by wasm-bindgen as a snippet module next to the glue
+// (`js/wasm/snippets/`), and tsdown bundles it into every `lib/` entry point.
+// It adds wasm imports only: the exports (`InitOutput`) do not change.
+#[wasm_bindgen(inline_js = r#"
+export function match_(start, end, value) {
+  return { start, end, value };
+}
+export function push_match(list, start, end, value) {
+  list.push({ start, end, value });
+}
+export function set_match(names, key, start, end, value) {
+  names[key] = { start, end, value };
+}
+export function captures(get, name) {
+  return { get, name };
+}
+export function array() {
+  return [];
+}
+export function object() {
+  return {};
+}
+export function push(list, value) {
+  list.push(value);
+}
+export function hir(kind) {
+  return { '@type': 'struct', '@name': 'regex_syntax::hir::Hir', kind };
+}
+export function hir_kind_empty() {
+  return { '@type': 'enum', '@name': 'regex_syntax::hir::HirKind', '@variant': 'Empty' };
+}
+export function hir_kind(variant, value) {
+  return { '@type': 'enum', '@name': 'regex_syntax::hir::HirKind', '@variant': variant, '@values': [value] };
+}
+export function literal(bytes) {
+  return { '@type': 'struct', '@name': 'regex_syntax::hir::Literal', '@values': [bytes.slice()] };
+}
+export function class_(variant, value) {
+  return { '@type': 'enum', '@name': 'regex_syntax::hir::Class', '@variant': variant, '@values': [value] };
+}
+export function class_unicode(flat) {
+  const ranges = [];
+  for (let i = 0; i < flat.length; i += 3) {
+    ranges.push({
+      '@type': 'struct',
+      '@name': 'regex_syntax::hir::ClassUnicodeRange',
+      start: String.fromCodePoint(flat[i]),
+      end: String.fromCodePoint(flat[i + 1]),
+      len: flat[i + 2],
+    });
+  }
+  return { '@type': 'struct', '@name': 'regex_syntax::hir::ClassUnicode', ranges };
+}
+export function class_bytes(flat) {
+  const ranges = [];
+  for (let i = 0; i < flat.length; i += 3) {
+    ranges.push({
+      '@type': 'struct',
+      '@name': 'regex_syntax::hir::ClassBytesRange',
+      start: flat[i],
+      end: flat[i + 1],
+      len: flat[i + 2],
+    });
+  }
+  return { '@type': 'struct', '@name': 'regex_syntax::hir::ClassBytes', ranges };
+}
+export function look(variant) {
+  return { '@type': 'enum', '@name': 'regex_syntax::hir::Look', '@variant': variant };
+}
+export function repetition(min, max, greedy, sub) {
+  return { '@type': 'struct', '@name': 'regex_syntax::hir::Repetition', min, max, greedy, sub };
+}
+export function capture(index, name, sub) {
+  return { '@type': 'struct', '@name': 'regex_syntax::hir::Capture', index, name, sub };
+}
+"#)]
 extern "C" {
-    /// A plain JS object with infallible (non-`catch`) property setters.
-    /// Typed setters pass numbers and strings straight through the ABI,
-    /// without allocating an intermediate `JsValue` for each value.
-    #[wasm_bindgen(extends = Object)]
-    type Obj;
+    /// `{ start, end, value }`
+    fn match_(start: u32, end: u32, value: &str) -> JsValue;
+    /// `list.push({ start, end, value })`
+    fn push_match(list: &JsValue, start: u32, end: u32, value: &str);
+    /// `names[key] = { start, end, value }`: an ordinary property assignment,
+    /// the same `[[Set]]` as the previous `Reflect.set` on a plain object.
+    fn set_match(names: &JsValue, key: &JsValue, start: u32, end: u32, value: &str);
+    /// `{ get, name }`
+    fn captures(get: &JsValue, name: &JsValue) -> JsValue;
+    pub(crate) fn array() -> JsValue;
+    fn object() -> JsValue;
+    pub(crate) fn push(list: &JsValue, value: &JsValue);
 
-    #[wasm_bindgen(method, indexing_setter)]
-    fn set(this: &Obj, key: &JsValue, value: &JsValue);
-
-    #[wasm_bindgen(method, indexing_setter)]
-    fn set_str(this: &Obj, key: &JsValue, value: &str);
-
-    #[wasm_bindgen(method, indexing_setter)]
-    fn set_num(this: &Obj, key: &JsValue, value: f64);
-
-    #[wasm_bindgen(method, indexing_setter)]
-    fn set_bool(this: &Obj, key: &JsValue, value: bool);
-}
-
-impl Obj {
-    fn new() -> Obj {
-        Object::new().unchecked_into()
-    }
-}
-
-/// JS strings for the static keys and values of `Match`, `Captures` and HIR
-/// objects, created once per thread so each property write is a single JS call.
-struct Keys {
-    type_: JsValue,
-    name: JsValue,
-    variant: JsValue,
-    values: JsValue,
-    struct_: JsValue,
-    enum_: JsValue,
-    kind: JsValue,
-    ranges: JsValue,
-    start: JsValue,
-    end: JsValue,
-    len: JsValue,
-    min: JsValue,
-    max: JsValue,
-    greedy: JsValue,
-    sub: JsValue,
-    index: JsValue,
-    get: JsValue,
-    plain_name: JsValue,
-    value: JsValue,
-}
-
-impl Keys {
-    fn new() -> Keys {
-        Keys {
-            type_: "@type".into(),
-            name: "@name".into(),
-            variant: "@variant".into(),
-            values: "@values".into(),
-            struct_: "struct".into(),
-            enum_: "enum".into(),
-            kind: "kind".into(),
-            ranges: "ranges".into(),
-            start: "start".into(),
-            end: "end".into(),
-            len: "len".into(),
-            min: "min".into(),
-            max: "max".into(),
-            greedy: "greedy".into(),
-            sub: "sub".into(),
-            index: "index".into(),
-            get: "get".into(),
-            plain_name: "name".into(),
-            value: "value".into(),
-        }
-    }
-}
-
-thread_local! {
-    static KEYS: Keys = Keys::new();
-}
-
-/// Starts an object with the `@type` and `@name` header shared by every HIR node.
-fn node(k: &Keys, type_: &JsValue, name: &str) -> Obj {
-    let o = Obj::new();
-    o.set(&k.type_, type_);
-    o.set_str(&k.name, name);
-    o
+    fn hir(kind: &JsValue) -> JsValue;
+    fn hir_kind_empty() -> JsValue;
+    fn hir_kind(variant: &str, value: &JsValue) -> JsValue;
+    /// Copies `bytes`: the view into wasm memory is only valid during the call.
+    fn literal(bytes: &[u8]) -> JsValue;
+    fn class_(variant: &str, value: &JsValue) -> JsValue;
+    /// `flat` is `[start, end, len, …]`, with code points as `start` and `end`.
+    fn class_unicode(flat: &[u32]) -> JsValue;
+    /// `flat` is `[start, end, len, …]`.
+    fn class_bytes(flat: &[u32]) -> JsValue;
+    fn look(variant: &str) -> JsValue;
+    fn repetition(min: u32, max: Option<u32>, greedy: bool, sub: &JsValue) -> JsValue;
+    fn capture(index: u32, name: Option<&str>, sub: &JsValue) -> JsValue;
 }
 
 macro_rules! match_type {
@@ -153,25 +172,16 @@ export type Match = {
     };
 }
 
-pub struct Match<'t>(regex::Match<'t>);
+// Offsets are `u32`: `usize` is 32 bits on wasm32, so no value is truncated.
 
-impl<'t> From<regex::Match<'t>> for Match<'t> {
-    fn from(value: regex::Match<'t>) -> Self {
-        Match(value)
-    }
+/// Returns the `Match` object of `m`.
+pub fn match_to_js(m: regex::Match) -> JsValue {
+    match_(m.start() as u32, m.end() as u32, m.as_str())
 }
 
-impl<'t> From<Match<'t>> for JsValue {
-    fn from(value: Match<'t>) -> Self {
-        let m = value.0;
-        let o = Obj::new();
-        KEYS.with(|k| {
-            o.set_num(&k.start, m.start() as f64);
-            o.set_num(&k.end, m.end() as f64);
-            o.set_str(&k.value, m.as_str());
-        });
-        o.into()
-    }
+/// Pushes the `Match` object of `m` to the JS array `list`.
+pub fn push_match_to_js(list: &JsValue, m: regex::Match) {
+    push_match(list, m.start() as u32, m.end() as u32, m.as_str());
 }
 
 macro_rules! captures_type {
@@ -226,35 +236,33 @@ export type Captures = {
     };
 }
 
-impl<'t> Match<'t> {
-    /// Named groups are set with `Reflect::set` (a `catch` import), as before:
-    /// the wasm exports it pulls in (`__wbindgen_exn_store`, …) are part of the
-    /// `InitOutput` type in the generated `.d.ts`.
-    pub fn captures(
-        captures: regex::Captures,
-        captures_names: regex::CaptureNames,
-    ) -> Result<JsValue, JsValue> {
-        let matches = Array::new();
-        let names = Obj::new();
-        for (index, name) in captures_names.enumerate() {
-            if let Some(m) = captures.get(index) {
-                matches.push(&JsValue::from(Match::from(m)));
-            }
+/// The capture group names of a regex as JS strings (`None` for unnamed
+/// groups), created once per search instead of once per match.
+pub fn capture_names_to_js(names: regex::CaptureNames) -> Vec<Option<JsValue>> {
+    names.map(|name| name.map(JsValue::from_str)).collect()
+}
 
-            if let Some(n) = name {
-                if let Some(m) = captures.name(n) {
-                    crate::js::reflect_set(&names, &JsValue::from_str(n), &JsValue::from(Match::from(m)))?;
-                }
+/// Returns the `Captures` object of the last match in `locs`.
+///
+/// Groups that did not participate in the match are left out of `get`, so an
+/// index in `get` is not always the group index (as before).
+pub fn captures_to_js(
+    text: &str,
+    locs: &regex::CaptureLocations,
+    names: &[Option<JsValue>],
+) -> JsValue {
+    let get = array();
+    let by_name = object();
+    for (index, name) in names.iter().enumerate() {
+        if let Some((start, end)) = locs.get(index) {
+            let value = &text[start..end];
+            push_match(&get, start as u32, end as u32, value);
+            if let Some(name) = name {
+                set_match(&by_name, name, start as u32, end as u32, value);
             }
         }
-
-        let result = Obj::new();
-        KEYS.with(|k| {
-            result.set(&k.get, &matches);
-            result.set(&k.plain_name, &names);
-        });
-        Ok(result.into())
     }
+    captures(&get, &by_name)
 }
 
 /// Wraps a borrowed `regex_syntax` value to convert it into a JS value.
@@ -268,18 +276,13 @@ impl<T> From<T> for Hir<T> {
 
 impl From<Hir<&hir::Hir>> for JsValue {
     fn from(value: Hir<&hir::Hir>) -> Self {
-        KEYS.with(|k| value.to_js(k))
+        value.to_js()
     }
 }
 
 /// Builds the JS representation of a HIR node.
 trait ToJs {
-    fn to_js(&self, k: &Keys) -> JsValue;
-}
-
-/// Returns `[value]`, the `@values` payload of single-value enum variants.
-fn values1(k: &Keys, value: &dyn ToJs) -> Array {
-    Array::of1(&value.to_js(k))
+    fn to_js(&self) -> JsValue;
 }
 
 macro_rules! hir_type {
@@ -296,10 +299,8 @@ export type Hir = {
 }
 
 impl ToJs for Hir<&hir::Hir> {
-    fn to_js(&self, k: &Keys) -> JsValue {
-        let o = node(k, &k.struct_, "regex_syntax::hir::Hir");
-        o.set(&k.kind, &Hir(self.0.kind()).to_js(k));
-        o.into()
+    fn to_js(&self) -> JsValue {
+        hir(&Hir(self.0.kind()).to_js())
     }
 }
 
@@ -421,32 +422,28 @@ export type HirKindAlternationVariant = {
     };
 }
 
-fn hir_list(k: &Keys, list: &[hir::Hir]) -> Array {
-    let values = Array::new();
+/// Returns the JS array of the HIR nodes in `list`.
+fn hir_list(list: &[hir::Hir]) -> JsValue {
+    let values = array();
     for h in list {
-        values.push(&Hir(h).to_js(k));
+        push(&values, &Hir(h).to_js());
     }
-    Array::of1(&values)
+    values
 }
 
 impl ToJs for Hir<&hir::HirKind> {
-    fn to_js(&self, k: &Keys) -> JsValue {
-        let o = node(k, &k.enum_, "regex_syntax::hir::HirKind");
-        let (variant, values) = match self.0 {
-            hir::HirKind::Empty => ("Empty", None),
-            hir::HirKind::Literal(l) => ("Literal", Some(values1(k, &Hir(l)))),
-            hir::HirKind::Class(c) => ("Class", Some(values1(k, &Hir(c)))),
-            hir::HirKind::Look(l) => ("Look", Some(values1(k, &Hir(l)))),
-            hir::HirKind::Repetition(r) => ("Repetition", Some(values1(k, &Hir(r)))),
-            hir::HirKind::Capture(c) => ("Capture", Some(values1(k, &Hir(c)))),
-            hir::HirKind::Concat(c) => ("Concat", Some(hir_list(k, c))),
-            hir::HirKind::Alternation(a) => ("Alternation", Some(hir_list(k, a))),
+    fn to_js(&self) -> JsValue {
+        let (variant, value) = match self.0 {
+            hir::HirKind::Empty => return hir_kind_empty(),
+            hir::HirKind::Literal(l) => ("Literal", Hir(l).to_js()),
+            hir::HirKind::Class(c) => ("Class", Hir(c).to_js()),
+            hir::HirKind::Look(l) => ("Look", Hir(l).to_js()),
+            hir::HirKind::Repetition(r) => ("Repetition", Hir(r).to_js()),
+            hir::HirKind::Capture(c) => ("Capture", Hir(c).to_js()),
+            hir::HirKind::Concat(c) => ("Concat", hir_list(c)),
+            hir::HirKind::Alternation(a) => ("Alternation", hir_list(a)),
         };
-        o.set_str(&k.variant, variant);
-        if let Some(values) = values {
-            o.set(&k.values, &values);
-        }
-        o.into()
+        hir_kind(variant, &value)
     }
 }
 
@@ -469,11 +466,8 @@ export type Literal = {
 }
 
 impl ToJs for Hir<&hir::Literal> {
-    fn to_js(&self, k: &Keys) -> JsValue {
-        let o = node(k, &k.struct_, "regex_syntax::hir::Literal");
-        let bytes = Uint8Array::new(self.0 .0.as_ref());
-        o.set(&k.values, &Array::of1(&bytes));
-        o.into()
+    fn to_js(&self) -> JsValue {
+        literal(self.0 .0.as_ref())
     }
 }
 
@@ -522,15 +516,11 @@ export type ClassByteVariant = {
 }
 
 impl ToJs for Hir<&hir::Class> {
-    fn to_js(&self, k: &Keys) -> JsValue {
-        let o = node(k, &k.enum_, "regex_syntax::hir::Class");
-        let (variant, values) = match self.0 {
-            hir::Class::Bytes(b) => ("Bytes", values1(k, &Hir(b))),
-            hir::Class::Unicode(u) => ("Unicode", values1(k, &Hir(u))),
-        };
-        o.set_str(&k.variant, variant);
-        o.set(&k.values, &values);
-        o.into()
+    fn to_js(&self) -> JsValue {
+        match self.0 {
+            hir::Class::Bytes(b) => class_("Bytes", &Hir(b).to_js()),
+            hir::Class::Unicode(u) => class_("Unicode", &Hir(u).to_js()),
+        }
     }
 }
 
@@ -550,14 +540,13 @@ export type ClassUnicode = {
 }
 
 impl ToJs for Hir<&hir::ClassUnicode> {
-    fn to_js(&self, k: &Keys) -> JsValue {
-        let o = node(k, &k.struct_, "regex_syntax::hir::ClassUnicode");
-        let ranges = Array::new();
+    /// All ranges cross the boundary in one `[start, end, len, …]` slice.
+    fn to_js(&self) -> JsValue {
+        let mut flat = Vec::with_capacity(self.0.ranges().len() * 3);
         for r in self.0.ranges() {
-            ranges.push(&Hir(r).to_js(k));
+            flat.extend_from_slice(&[u32::from(r.start()), u32::from(r.end()), r.len() as u32]);
         }
-        o.set(&k.ranges, &ranges);
-        o.into()
+        class_unicode(&flat)
     }
 }
 
@@ -595,16 +584,8 @@ export type ClassUnicodeRange = {
     };
 }
 
-impl ToJs for Hir<&hir::ClassUnicodeRange> {
-    fn to_js(&self, k: &Keys) -> JsValue {
-        let o = node(k, &k.struct_, "regex_syntax::hir::ClassUnicodeRange");
-        let mut buf = [0u8; 4];
-        o.set_str(&k.start, self.0.start().encode_utf8(&mut buf));
-        o.set_str(&k.end, self.0.end().encode_utf8(&mut buf));
-        o.set_num(&k.len, self.0.len() as f64);
-        o.into()
-    }
-}
+// `ClassUnicodeRange` objects are built by `class_unicode` in JS: `start` and
+// `end` are `String.fromCodePoint` of the range bounds.
 
 macro_rules! classbytes_type {
     () => {
@@ -623,14 +604,13 @@ export type ClassBytes = {
 }
 
 impl ToJs for Hir<&hir::ClassBytes> {
-    fn to_js(&self, k: &Keys) -> JsValue {
-        let o = node(k, &k.struct_, "regex_syntax::hir::ClassBytes");
-        let ranges = Array::new();
+    /// All ranges cross the boundary in one `[start, end, len, …]` slice.
+    fn to_js(&self) -> JsValue {
+        let mut flat = Vec::with_capacity(self.0.ranges().len() * 3);
         for r in self.0.ranges() {
-            ranges.push(&Hir(r).to_js(k));
+            flat.extend_from_slice(&[u32::from(r.start()), u32::from(r.end()), r.len() as u32]);
         }
-        o.set(&k.ranges, &ranges);
-        o.into()
+        class_bytes(&flat)
     }
 }
 
@@ -668,15 +648,7 @@ export type ClassBytesRange = {
     };
 }
 
-impl ToJs for Hir<&hir::ClassBytesRange> {
-    fn to_js(&self, k: &Keys) -> JsValue {
-        let o = node(k, &k.struct_, "regex_syntax::hir::ClassBytesRange");
-        o.set_num(&k.start, self.0.start() as f64);
-        o.set_num(&k.end, self.0.end() as f64);
-        o.set_num(&k.len, self.0.len() as f64);
-        o.into()
-    }
-}
+// `ClassBytesRange` objects are built by `class_bytes` in JS.
 
 macro_rules! look_type {
     () => {
@@ -902,8 +874,7 @@ export type LookWordEndHalfUnicodeVariant = {
 }
 
 impl ToJs for Hir<&hir::Look> {
-    fn to_js(&self, k: &Keys) -> JsValue {
-        let o = node(k, &k.enum_, "regex_syntax::hir::Look");
+    fn to_js(&self) -> JsValue {
         let variant = match self.0 {
             hir::Look::Start => "Start",
             hir::Look::End => "End",
@@ -924,8 +895,7 @@ impl ToJs for Hir<&hir::Look> {
             hir::Look::WordStartHalfUnicode => "WordStartHalfUnicode",
             hir::Look::WordEndHalfUnicode => "WordEndHalfUnicode",
         };
-        o.set_str(&k.variant, variant);
-        o.into()
+        look(variant)
     }
 }
 
@@ -980,16 +950,9 @@ export type Repetition = {
 }
 
 impl ToJs for Hir<&hir::Repetition> {
-    fn to_js(&self, k: &Keys) -> JsValue {
-        let o = node(k, &k.struct_, "regex_syntax::hir::Repetition");
-        o.set_num(&k.min, self.0.min as f64);
-        match self.0.max {
-            Some(max) => o.set_num(&k.max, max as f64),
-            None => o.set(&k.max, &JsValue::UNDEFINED),
-        }
-        o.set_bool(&k.greedy, self.0.greedy);
-        o.set(&k.sub, &Hir(self.0.sub.as_ref()).to_js(k));
-        o.into()
+    fn to_js(&self) -> JsValue {
+        let r = self.0;
+        repetition(r.min, r.max, r.greedy, &Hir(r.sub.as_ref()).to_js())
     }
 }
 
@@ -1022,15 +985,9 @@ export type Capture = {
 }
 
 impl ToJs for Hir<&hir::Capture> {
-    fn to_js(&self, k: &Keys) -> JsValue {
-        let o = node(k, &k.struct_, "regex_syntax::hir::Capture");
-        o.set_num(&k.index, self.0.index as f64);
-        match &self.0.name {
-            Some(name) => o.set_str(&k.plain_name, name),
-            None => o.set(&k.plain_name, &JsValue::UNDEFINED),
-        }
-        o.set(&k.sub, &Hir(self.0.sub.as_ref()).to_js(k));
-        o.into()
+    fn to_js(&self) -> JsValue {
+        let c = self.0;
+        capture(c.index, c.name.as_deref(), &Hir(c.sub.as_ref()).to_js())
     }
 }
 
@@ -1052,5 +1009,6 @@ const TYPES: &'static str = concat!(
     look_type!(), "\n\n",
     repetition_type!(), "\n\n",
     captures_type!(), "\n\n",
-    capture_type!(),
+    capture_type!(), "\n\n",
+    crate::options::options_type!(),
 );

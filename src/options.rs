@@ -1,7 +1,11 @@
 use wasm_bindgen::prelude::*;
 
-#[wasm_bindgen(typescript_custom_section)]
-const OPTIONS_TYPE: &'static str = r#"/**
+/// The `RRegexOptions` declaration. It is part of the single
+/// `typescript_custom_section` in `types.rs`, which fixes its position in the
+/// published `.d.ts`.
+macro_rules! options_type {
+    () => {
+r#"/**
  * Options to compile a `RRegex` or a `RRegexSet`. Every option is optional
  * and only applies to the instance that receives it.
  *
@@ -46,7 +50,10 @@ export type RRegexOptions = {
    * @see https://docs.rs/regex/latest/regex/struct.RegexBuilder.html#method.nest_limit
    */
   nestLimit?: number
-}"#;
+}"#
+    };
+}
+pub(crate) use options_type;
 
 #[wasm_bindgen]
 extern "C" {
