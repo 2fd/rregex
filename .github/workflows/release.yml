@@ -67,10 +67,15 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: ${{ runner.os }}-cargo-
 
-      # prebuilt binary: `cargo install wasm-pack` compiles it in ~1 min
+      # wasm-bindgen-cli must match the wasm-bindgen crate in Cargo.lock
+      - name: reading wasm-bindgen version
+        id: wasm-bindgen
+        run: echo "version=$(grep -A1 '^name = "wasm-bindgen"$' Cargo.lock | sed -n 's/^version = "\(.*\)"$/\1/p')" >> "$GITHUB_OUTPUT"
+
+      # prebuilt binaries: `cargo install` compiles each one in ~1 min
       - uses: taiki-e/install-action@v2
         with:
-          tool: wasm-pack
+          tool: wasm-pack,wasm-bindgen@${{ steps.wasm-bindgen.outputs.version }}
 
       - name: checking regex engine versions
         run: ./bin/check-regex-deps.sh
