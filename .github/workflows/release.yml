@@ -141,89 +141,133 @@ jobs:
       - name: testing wasm
         run: node --run test:rs -- --node
 
+  # Each runtime runs every version in one job: the tests take seconds, less
+  # than the setup of a runner, and one job per version used ~11 of the
+  # concurrent jobs of the account on each PR. A failed version stops the job,
+  # like the fail-fast of a matrix.
   test_node:
     runs-on: ubuntu-24.04
 
     needs: build
 
-    strategy:
-      matrix:
-        version: ["22", "24", "26"]
-
     steps:
       - uses: actions/checkout@v7
-
-      - name: Run actions/setup-node@v7 (${{ matrix.version }})
-        uses: actions/setup-node@v7
-        with:
-          node-version: ${{ matrix.version }}
-          registry-url: https://registry.npmjs.org/
 
       - uses: actions/download-artifact@v8
         with:
           name: lib
           path: lib
 
-      - run: node lib/commonjs.cjs
-      - run: node lib/esm.mjs
-      - run: node --test test/node.test.cjs
-      - run: node --test test/node.test.mjs
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+
+      - name: node 22
+        run: &test-node |
+          node --version
+          node lib/commonjs.cjs
+          node lib/esm.mjs
+          node --test test/node.test.cjs
+          node --test test/node.test.mjs
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+
+      - name: node 24
+        run: *test-node
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "26"
+
+      - name: node 26
+        run: *test-node
 
   test_bun:
     runs-on: ubuntu-24.04
 
     needs: build
 
-    strategy:
-      matrix:
-        version: ["1.0", "1.1", "1.2", "1.3", "1.4"]
-
     steps:
       - uses: actions/checkout@v7
-
-      - name: Run oven-sh/setup-bun@v2 (${{ matrix.version }})
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: ${{ matrix.version }}
 
       - uses: actions/download-artifact@v8
         with:
           name: lib
           path: lib
 
-      - run: bun lib/commonjs.cjs
-      - run: bun lib/esm.mjs
-      - run: bun test test/bun.test.cjs
-      - run: bun test test/bun.test.mjs
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.0"
+
+      - name: bun 1.0
+        run: &test-bun |
+          bun --version
+          bun lib/commonjs.cjs
+          bun lib/esm.mjs
+          bun test test/bun.test.cjs
+          bun test test/bun.test.mjs
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.1"
+
+      - name: bun 1.1
+        run: *test-bun
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.2"
+
+      - name: bun 1.2
+        run: *test-bun
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3"
+
+      - name: bun 1.3
+        run: *test-bun
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.4"
+
+      - name: bun 1.4
+        run: *test-bun
 
   test_deno:
     runs-on: ubuntu-24.04
 
     needs: build
 
-    strategy:
-      matrix:
-        version: ["1.x", "2.x"]
-
     steps:
       - uses: actions/checkout@v7
-
-      - name: Run denoland/setup-deno@v2 (${{ matrix.version }})
-        uses: denoland/setup-deno@v2
-        with:
-          deno-version: "v${{ matrix.version }}"
 
       - uses: actions/download-artifact@v8
         with:
           name: lib
           path: lib
 
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v1.x
+
+      - name: deno 1.x
+        run: &test-deno |
+          deno --version
+          deno run --allow-read=lib/rregex.wasm lib/esm.mjs
+          deno test --allow-read=lib/rregex.wasm test/deno.test.mjs
+
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
       - run: deno install
-        if: ${{ matrix.version != '1.x' }}
 
-      - run: deno run --allow-read=lib/rregex.wasm lib/esm.mjs
-
-      - run: deno test --allow-read=lib/rregex.wasm test/deno.test.mjs
+      - name: deno 2.x
+        run: *test-deno
 
   test_cf:
     runs-on: ubuntu-24.04
