@@ -149,7 +149,26 @@
       }
     ],
     "plugins": [
-      "@semantic-release/commit-analyzer",
+      [
+        "@semantic-release/commit-analyzer",
+        {
+          "releaseRules": [
+            {
+              "breaking": true,
+              "release": "patch"
+            },
+            {
+              "type": "feat",
+              "release": "patch"
+            },
+            {
+              "type": "feat",
+              "scope": "regex",
+              "release": "minor"
+            }
+          ]
+        }
+      ],
       "@semantic-release/release-notes-generator",
       "@semantic-release/npm",
       [
@@ -178,6 +197,7 @@
       [
         "@semantic-release/exec",
         {
+          "verifyReleaseCmd": "./bin/check-release-version.sh ${nextRelease.version}",
           "publishCmd": "node bin/jsr.mjs ${nextRelease.version} && npx jsr publish --allow-dirty"
         }
       ]
