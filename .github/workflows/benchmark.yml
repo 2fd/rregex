@@ -33,21 +33,25 @@ permissions:
   contents: read
 
 jobs:
-  benchmark:
+  # builds head once and downloads base, so every runtime measures the same
+  # two builds
+  build:
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 15
 
-    env:
-      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+    outputs:
+      latest: ${{ steps.latest.outputs.version }}
 
     steps:
       - uses: actions/checkout@v7
 
       # same shared key as the build of the release workflow, so the cache of
-      # master is reused
+      # master is reused. Only the release workflow saves it: two jobs that
+      # save the same key at the same time fail to reserve it.
       - uses: Swatinem/rust-cache@v2
         with:
           shared-key: release
+          save-if: false
 
       # wasm-bindgen-cli must match the wasm-bindgen crate in Cargo.lock
       - name: reading wasm-bindgen version
@@ -72,6 +76,7 @@ jobs:
       # the base is the published package: inside the repository, because the
       # browser benchmark only serves files from there
       - name: downloading latest
+        id: latest
         run: |
           meta=$(curl -fsSL https://registry.npmjs.org/rregex/latest)
           curl -fsSL -o "$RUNNER_TEMP/rregex.tgz" "$(jq -r .dist.tarball <<< "$meta")"
@@ -79,7 +84,7 @@ jobs:
           mkdir -p .latest
           tar xzf "$RUNNER_TEMP/rregex.tgz" -C .latest --strip-components=1 package/lib
           test -f .latest/lib/esm.mjs -a -f .latest/lib/rregex.wasm
-          echo "LATEST_VERSION=$(jq -r .version <<< "$meta")" >> "$GITHUB_ENV"
+          echo "version=$(jq -r .version <<< "$meta")" >> "$GITHUB_OUTPUT"
 
       - name: installing
         run: pnpm install --frozen-lockfile
@@ -100,29 +105,119 @@ jobs:
       # check that the lib is complete; the build time goes to the report
       - name: building head
         run: |
-          mkdir -p "$RUNNER_TEMP/benchmark"
-          BUILD_TIMINGS="$RUNNER_TEMP/benchmark/build.json" node --run build
+          BUILD_TIMINGS=build.json node --run build
           test -f lib/esm.mjs -a -f lib/rregex.wasm
 
-      # Chrome and Firefox come with the runner image; the runtimes run one
-      # after the other, so they do not compete for the CPU
+      - uses: actions/upload-artifact@v7
+        with:
+          name: bench-libs
+          path: |
+            lib/
+            .latest/lib/
+            build.json
+          include-hidden-files: true # .latest
+          if-no-files-found: error
+          retention-days: 1
+
+  # One job for each runtime, each on its own runner, so they run in parallel
+  # and do not compete for the CPU. Every delta compares base and head on the
+  # same runner, so the runtimes do not need the same hardware.
+  bench:
+    needs: build
+
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    strategy:
+      matrix:
+        runtime: [node, chrome, firefox]
+
+    steps:
+      - uses: actions/checkout@v7
+
+      # tinybench, for the Node benchmark only
+      - uses: pnpm/action-setup@v6
+        if: matrix.runtime == 'node'
+        with:
+          version: 11
+
+      # also the runtime of the Node benchmark
+      - name: Run actions/setup-node@v7
+        uses: actions/setup-node@v7
+        with:
+          node-version: "26"
+          cache: ${{ matrix.runtime == 'node' && 'pnpm' || '' }}
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: bench-libs
+
+      - name: installing
+        if: matrix.runtime == 'node'
+        run: pnpm install --frozen-lockfile
+
+      # Chrome and Firefox come with the runner image
       - name: running benchmarks
+        env:
+          RUNTIME: ${{ matrix.runtime }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/benchmark"
+          if [ "$RUNTIME" = node ]; then
+            node bin/bench-node.mjs --base .latest/lib --head lib \
+              --json "$RUNNER_TEMP/benchmark/$RUNTIME.json"
+          else
+            node bin/bench-browser.mjs --browser "$RUNTIME" --base .latest/lib --head lib \
+              --json "$RUNNER_TEMP/benchmark/$RUNTIME.json"
+          fi
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: benchmark-${{ matrix.runtime }}
+          path: ${{ runner.temp }}/benchmark/${{ matrix.runtime }}.json
+          if-no-files-found: error
+          retention-days: 1
+
+  report:
+    needs: [build, bench]
+
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+
+    env:
+      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      LATEST_VERSION: ${{ needs.build.outputs.latest }}
+
+    steps:
+      # bench-compare.mjs only needs bin/ and Node
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: bin
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "26"
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: bench-libs
+
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: benchmark-*
+          merge-multiple: true
+          path: ${{ runner.temp }}/benchmark
+
+      - name: writing report
         env:
           REPORT_DIR: ${{ runner.temp }}/benchmark
         run: |
-          mkdir -p "$REPORT_DIR"
-          for browser in chrome firefox; do
-            node bin/bench-browser.mjs \
-              --browser "$browser" \
-              --base .latest/lib \
-              --head lib \
-              --json "$REPORT_DIR/$browser.json"
-          done
+          cp build.json "$REPORT_DIR/build.json"
           node bin/bench-compare.mjs \
             --base .latest/lib \
             --head lib \
             --base-label "\`rregex@${LATEST_VERSION}\` (npm latest)" \
             --head-label "\`${HEAD_SHA::7}\`" \
+            --runtime "$REPORT_DIR/node.json" \
             --runtime "$REPORT_DIR/chrome.json" \
             --runtime "$REPORT_DIR/firefox.json" \
             --build-time "$REPORT_DIR/build.json" \
@@ -130,6 +225,7 @@ jobs:
             --json "$REPORT_DIR/results.json"
           cat "$REPORT_DIR/report.md" >> "$GITHUB_STEP_SUMMARY"
 
+      # the `benchmark comment` workflow downloads it by this name
       - uses: actions/upload-artifact@v7
         with:
           name: benchmark
@@ -139,11 +235,13 @@ jobs:
   comment:
     # PRs from this repository only, see `benchmark comment` for the others
     if: >-
-      !cancelled() && needs.benchmark.result != 'skipped' &&
+      !cancelled() && needs.build.result != 'skipped' &&
       github.event.pull_request.head.repo.full_name == github.repository &&
       github.event.pull_request.user.login != 'dependabot[bot]'
 
-    needs: benchmark
+    # all of them: when build or bench fails, report is skipped and the
+    # comment reports the failure
+    needs: [build, bench, report]
 
     runs-on: ubuntu-24.04
 
@@ -157,14 +255,14 @@ jobs:
           sparse-checkout: .github/scripts
 
       - uses: actions/download-artifact@v8
-        if: needs.benchmark.result == 'success'
+        if: needs.report.result == 'success'
         with:
           name: benchmark
           path: ${{ runner.temp }}/benchmark
 
       - uses: actions/github-script@v9
         env:
-          SUCCESS: ${{ needs.benchmark.result == 'success' }}
+          SUCCESS: ${{ needs.report.result == 'success' }}
         with:
           script: |
             await require('./.github/scripts/benchmark-comment.cjs')({

@@ -1,4 +1,4 @@
-// Browser version of bin/bench-compare.mjs: runs every case for base, head
+// Browser version of bin/bench-node.mjs: runs every case for base, head
 // and the native RegExp, and reports the samples to `?report=<url>` (used by
 // bin/bench-browser.mjs) or as `globalThis.compareResults`.
 //

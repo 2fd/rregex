@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Runs the base vs head benchmarks of bin/bench-compare.mjs in a browser and
+// Runs the base vs head benchmarks of bin/bench-cases.mjs in a browser and
 // writes the samples to a JSON file, for `bench-compare.mjs --runtime <file>`.
 //
 // Usage:
@@ -16,7 +16,7 @@
 
 import { spawn } from 'node:child_process';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { cpus, tmpdir } from 'node:os';
 import { join, relative, resolve, sep } from 'node:path';
 import { parseArgs } from 'node:util';
 import { ROOT, createStaticServer } from '../test/browser/server.mjs';
@@ -67,10 +67,19 @@ function urlPath(dir) {
   return `/${path.split(sep).join('/')}`;
 }
 
+const started = performance.now();
+const elapsed = () => `${((performance.now() - started) / 1000).toFixed(1)} s`;
+let ready = false;
+
 const results = Promise.withResolvers();
 const server = createStaticServer({
   onPost(pathname, message) {
     if (pathname !== '/results') return;
+    // the page posts its first message once the browser runs it
+    if (!ready) {
+      ready = true;
+      console.error(`${args.browser}: page ready after ${elapsed()}`);
+    }
     if (message.type === 'progress') console.error(message.message);
     if (message.type === 'done') results.resolve(message.results);
     if (message.type === 'error') results.reject(new Error(message.message));
@@ -110,7 +119,7 @@ const timer = setTimeout(
 );
 
 try {
-  const json = JSON.stringify(await results.promise, null, 2) + '\n';
+  const json = JSON.stringify({ ...(await results.promise), cpu: cpus()[0]?.model }, null, 2) + '\n';
   if (args.json) {
     await writeFile(args.json, json);
   } else {
@@ -121,18 +130,25 @@ try {
   process.exitCode = 1;
 } finally {
   clearTimeout(timer);
+  // SIGKILL: the results are in (or the run failed), so nothing in the
+  // browser needs a clean shutdown, and Firefox can take seconds on SIGTERM
   if (browser && browser.exitCode === null && browser.signalCode === null) {
+    const closing = performance.now();
     browser.removeAllListeners('exit');
+    let timeout;
     const exited = new Promise((done) => {
       browser.once('exit', done);
-      setTimeout(done, 5000);
+      // unref: a pending timer would keep the process alive after the exit
+      timeout = setTimeout(done, 5000).unref();
     });
     try {
-      process.kill(-browser.pid, 'SIGTERM');
+      process.kill(-browser.pid, 'SIGKILL');
     } catch {
-      browser.kill('SIGTERM');
+      browser.kill('SIGKILL');
     }
     await exited;
+    clearTimeout(timeout);
+    console.error(`${args.browser}: closed in ${((performance.now() - closing) / 1000).toFixed(1)} s`);
   }
   server.closeAllConnections();
   server.close();

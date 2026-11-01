@@ -1,6 +1,6 @@
 // Runs one case for both builds and the native RegExp, in the given order.
 // Each case runs in a new worker, so every build starts with a clean wasm
-// memory (see bin/bench-compare.mjs).
+// memory (see bin/bench-node.mjs).
 
 import { cases, nativeCases } from "../../bin/bench-cases.mjs"
 import { measure } from "./measure.mjs"
