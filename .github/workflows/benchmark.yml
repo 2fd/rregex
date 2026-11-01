@@ -1,0 +1,102 @@
+name: benchmark
+
+# Runs the benchmarks of the PR against its base branch and uploads the report
+# as an artifact. The `benchmark comment` workflow posts it on the PR: this
+# workflow runs untrusted code with a read-only token (forks, dependabot).
+
+on:
+  pull_request:
+    paths:
+      - "src/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "bin/build.sh"
+      - "bin/bench-compare.mjs"
+      - ".github/workflows/benchmark.yml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    env:
+      BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      REPORT_DIR: ${{ runner.temp }}/benchmark
+
+    steps:
+      # head must be checked out first: checkout cleans the workspace root
+      - uses: actions/checkout@v7
+
+      # same paths and key as the release workflow, so the cache of master is reused
+      - uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: .base
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 11
+
+      - name: Run actions/setup-node@v7
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: pnpm
+          cache-dependency-path: |
+            pnpm-lock.yaml
+            .base/pnpm-lock.yaml
+
+      - name: setup
+        run: |
+          pnpm install --frozen-lockfile
+          node --run setup
+
+      - name: building head
+        run: node --run build
+
+      - name: building base
+        working-directory: .base
+        env:
+          # share compiled dependencies with the head build
+          CARGO_TARGET_DIR: ${{ github.workspace }}/target
+        run: |
+          pnpm install --frozen-lockfile
+          node --run build
+
+      - name: running benchmarks
+        run: |
+          mkdir -p "$REPORT_DIR"
+          node bin/bench-compare.mjs \
+            --base .base/lib \
+            --head lib \
+            --base-label "\`${BASE_SHA::7}\` (${GITHUB_BASE_REF})" \
+            --head-label "\`${HEAD_SHA::7}\`" \
+            --markdown "$REPORT_DIR/report.md" \
+            --json "$REPORT_DIR/results.json"
+          cat "$REPORT_DIR/report.md" >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: benchmark
+          path: ${{ env.REPORT_DIR }}
+          retention-days: 7
