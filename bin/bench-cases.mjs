@@ -1,4 +1,4 @@
-// Benchmark cases shared by bin/bench-compare.mjs (Node) and
+// Benchmark cases shared by bin/bench-node.mjs (Node) and
 // test/browser/compare.worker.mjs (browsers), so every runtime runs the
 // same calls on the same input.
 

@@ -1,10 +1,11 @@
 name: benchmark comment
 
-# Posts the report of the `benchmark` workflow on PRs from forks and dependabot,
-# which get a read-only token in `pull_request` (PRs from this repository are
-# handled by the `comment` job of `benchmark`). It runs from the default
-# branch with a write token, so it never checks out or runs code from the PR:
-# the artifact is only text, and the PR is resolved from the run metadata.
+# Posts the reports of the `benchmark` workflow (benchmarks and public API) on
+# PRs from forks and dependabot, which get a read-only token in `pull_request`
+# (PRs from this repository are handled by the `comment` and `api_comment`
+# jobs of `benchmark`). It runs from the default branch with a write token, so
+# it never checks out or runs code from the PR: the artifacts are only text
+# and JSON data, and the PR is resolved from the run metadata.
 
 on:
   workflow_run:
@@ -44,9 +45,22 @@ jobs:
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ github.token }}
 
+      # the api job can succeed when a benchmark fails: no artifact when it failed
+      - uses: actions/download-artifact@v8
+        id: api
+        continue-on-error: true
+        with:
+          name: api
+          path: ${{ runner.temp }}/api
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+
       - uses: actions/github-script@v9
+        env:
+          API: ${{ steps.api.outcome == 'success' }}
         with:
           script: |
+            const fs = require('node:fs');
             const run = context.payload.workflow_run;
             const { owner, repo } = context.repo;
 
@@ -67,13 +81,27 @@ jobs:
               return;
             }
 
-            await require('./.github/scripts/benchmark-comment.cjs')({
-              github,
-              context,
-              core,
-              pr,
-              sha: run.head_sha,
-              runUrl: run.html_url,
+            const comment = require('./.github/scripts/pr-comment.cjs');
+            const common = { github, context, core, pr, sha: run.head_sha, runUrl: run.html_url };
+
+            await comment({
+              ...common,
+              marker: '<!-- rregex-benchmark -->',
+              title: '⏱️ Benchmark results',
               success: run.conclusion === 'success',
               reportPath: `${process.env.RUNNER_TEMP}/benchmark/report.md`,
             });
+
+            // only a boolean is read from the JSON of the PR run
+            if (process.env.API === 'true') {
+              const dir = `${process.env.RUNNER_TEMP}/api`;
+              const { changed } = JSON.parse(fs.readFileSync(`${dir}/api.json`, 'utf8'));
+              await comment({
+                ...common,
+                marker: '<!-- rregex-api -->',
+                title: '🧩 Public API changes',
+                success: true,
+                reportPath: `${dir}/report.md`,
+                create: changed === true,
+              });
+            }

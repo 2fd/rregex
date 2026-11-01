@@ -1,14 +1,19 @@
 name: benchmark
 
-# Runs the benchmarks of the PR against the latest release on npm and posts
-# the report as a PR comment (one comment, kept up to date). PRs from forks and
-# dependabot get a read-only token, so the `benchmark comment` workflow posts
-# for them.
+# Compares the PR against the latest release on npm and posts two PR comments
+# (each one kept up to date):
+# - the benchmarks of every runtime;
+# - the changes in the public API (type declarations and package.json entry
+#   points). Posted only when the API changes, or to update an earlier one.
+# PRs from forks and dependabot get a read-only token, so the
+# `benchmark comment` workflow posts for them.
 
 on:
   pull_request:
     branches:
       - master
+    # every input of the build, so a PR that skips the workflow cannot change
+    # the API either
     paths:
       - "src/**"
       - "Cargo.toml"
@@ -16,11 +21,15 @@ on:
       - "package.json"
       - "pnpm-lock.yaml"
       - "bin/build.sh"
+      - "bin/wasm-opt.sh"
+      - "bin/install-binaryen.sh"
       - "js/**"
+      - "tsconfig.json"
       - "tsdown.config.ts"
       - "bin/bench-*.mjs"
+      - "bin/api-diff.mjs"
       - "test/browser/**"
-      - ".github/scripts/benchmark-comment.cjs"
+      - ".github/scripts/pr-comment.cjs"
       - ".github/workflows/benchmark.yml"
 
 concurrency:
@@ -31,26 +40,25 @@ permissions:
   contents: read
 
 jobs:
-  benchmark:
+  # builds head once and downloads base, so every runtime measures the same
+  # two builds
+  build:
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 15
 
-    env:
-      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+    outputs:
+      latest: ${{ steps.latest.outputs.version }}
 
     steps:
       - uses: actions/checkout@v7
 
-      # same paths and key as the release workflow, so the cache of master is reused
-      - uses: actions/cache@v6
+      # same shared key as the build of the release workflow, so the cache of
+      # master is reused. Only the release workflow saves it: two jobs that
+      # save the same key at the same time fail to reserve it.
+      - uses: Swatinem/rust-cache@v2
         with:
-          path: |
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ runner.os }}-cargo-
+          shared-key: release
+          save-if: false
 
       # wasm-bindgen-cli must match the wasm-bindgen crate in Cargo.lock
       - name: reading wasm-bindgen version
@@ -75,65 +83,164 @@ jobs:
       # the base is the published package: inside the repository, because the
       # browser benchmark only serves files from there
       - name: downloading latest
+        id: latest
         run: |
           meta=$(curl -fsSL https://registry.npmjs.org/rregex/latest)
           curl -fsSL -o "$RUNNER_TEMP/rregex.tgz" "$(jq -r .dist.tarball <<< "$meta")"
           test "sha512-$(openssl dgst -sha512 -binary "$RUNNER_TEMP/rregex.tgz" | base64 -w0)" = "$(jq -r .dist.integrity <<< "$meta")"
           mkdir -p .latest
-          tar xzf "$RUNNER_TEMP/rregex.tgz" -C .latest --strip-components=1 package/lib
-          test -f .latest/lib/esm.mjs -a -f .latest/lib/rregex.wasm
-          echo "LATEST_VERSION=$(jq -r .version <<< "$meta")" >> "$GITHUB_ENV"
+          tar xzf "$RUNNER_TEMP/rregex.tgz" -C .latest --strip-components=1 package/lib package/package.json
+          test -f .latest/lib/esm.mjs -a -f .latest/lib/rregex.wasm -a -f .latest/package.json
+          echo "version=$(jq -r .version <<< "$meta")" >> "$GITHUB_OUTPUT"
+
+      - name: installing
+        run: pnpm install --frozen-lockfile
+
+      # native binaryen for bin/wasm-opt.sh; rust-cache does not keep it
+      - name: reading binaryen version
+        id: binaryen
+        run: echo "version=$(node -p 'require("./node_modules/binaryen/package.json").version')" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v6
+        with:
+          path: target/binaryen
+          key: ${{ runner.os }}-binaryen-${{ steps.binaryen.outputs.version }}
 
       - name: setup
-        run: |
-          pnpm install --frozen-lockfile
-          node --run setup
+        run: node --run setup
 
-      # check that the lib is complete
+      # check that the lib is complete; the build time goes to the report
       - name: building head
         run: |
-          node --run build
+          BUILD_TIMINGS=build.json node --run build
           test -f lib/esm.mjs -a -f lib/rregex.wasm
-
-      # Chrome and Firefox come with the runner image; the runtimes run one
-      # after the other, so they do not compete for the CPU
-      - name: running benchmarks
-        env:
-          REPORT_DIR: ${{ runner.temp }}/benchmark
-        run: |
-          mkdir -p "$REPORT_DIR"
-          for browser in chrome firefox; do
-            node bin/bench-browser.mjs \
-              --browser "$browser" \
-              --base .latest/lib \
-              --head lib \
-              --json "$REPORT_DIR/$browser.json"
-          done
-          node bin/bench-compare.mjs \
-            --base .latest/lib \
-            --head lib \
-            --base-label "\`rregex@${LATEST_VERSION}\` (npm latest)" \
-            --head-label "\`${HEAD_SHA::7}\`" \
-            --runtime "$REPORT_DIR/chrome.json" \
-            --runtime "$REPORT_DIR/firefox.json" \
-            --markdown "$REPORT_DIR/report.md" \
-            --json "$REPORT_DIR/results.json"
-          cat "$REPORT_DIR/report.md" >> "$GITHUB_STEP_SUMMARY"
 
       - uses: actions/upload-artifact@v7
         with:
-          name: benchmark
-          path: ${{ runner.temp }}/benchmark
+          name: bench-libs
+          path: |
+            lib/
+            .latest/lib/
+            .latest/package.json
+            build.json
+          include-hidden-files: true # .latest
+          if-no-files-found: error
+          retention-days: 1
+
+  # One job for each runtime, each on its own runner, so they run in parallel
+  # and do not compete for the CPU. Every delta compares base and head on the
+  # same runner, so the runtimes do not need the same hardware.
+  bench:
+    needs: build
+
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    strategy:
+      matrix:
+        runtime: [node, chrome, firefox]
+
+    steps:
+      - uses: actions/checkout@v7
+
+      # tinybench, for the Node benchmark only
+      - uses: pnpm/action-setup@v6
+        if: matrix.runtime == 'node'
+        with:
+          version: 11
+
+      # also the runtime of the Node benchmark
+      - name: Run actions/setup-node@v7
+        uses: actions/setup-node@v7
+        with:
+          node-version: "26"
+          cache: ${{ matrix.runtime == 'node' && 'pnpm' || '' }}
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: bench-libs
+
+      - name: installing
+        if: matrix.runtime == 'node'
+        run: pnpm install --frozen-lockfile
+
+      # Chrome and Firefox come with the runner image
+      - name: running benchmarks
+        env:
+          RUNTIME: ${{ matrix.runtime }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/benchmark"
+          if [ "$RUNTIME" = node ]; then
+            node bin/bench-node.mjs --base .latest/lib --head lib \
+              --json "$RUNNER_TEMP/benchmark/$RUNTIME.json"
+          else
+            node bin/bench-browser.mjs --browser "$RUNTIME" --base .latest/lib --head lib \
+              --json "$RUNNER_TEMP/benchmark/$RUNTIME.json"
+          fi
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: benchmark-${{ matrix.runtime }}
+          path: ${{ runner.temp }}/benchmark/${{ matrix.runtime }}.json
+          if-no-files-found: error
+          retention-days: 1
+
+  # the public API of head vs the latest release, next to the benchmarks
+  api:
+    needs: build
+
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+
+    env:
+      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      LATEST_VERSION: ${{ needs.build.outputs.latest }}
+
+    steps:
+      # api-diff.mjs only needs bin/, package.json, Node and git
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: bin
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "26"
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: bench-libs
+
+      - name: comparing the public API
+        env:
+          REPORT_DIR: ${{ runner.temp }}/api
+        run: |
+          mkdir -p "$REPORT_DIR"
+          node bin/api-diff.mjs \
+            --base .latest/lib \
+            --head lib \
+            --base-package .latest/package.json \
+            --head-package package.json \
+            --base-label "\`rregex@${LATEST_VERSION}\` (npm latest)" \
+            --head-label "\`${HEAD_SHA::7}\`" \
+            --markdown "$REPORT_DIR/report.md" \
+            --json "$REPORT_DIR/api.json"
+          cat "$REPORT_DIR/report.md" >> "$GITHUB_STEP_SUMMARY"
+
+      # the `benchmark comment` workflow downloads it by this name
+      - uses: actions/upload-artifact@v7
+        with:
+          name: api
+          path: ${{ runner.temp }}/api
           retention-days: 7
 
-  comment:
+  api_comment:
     # PRs from this repository only, see `benchmark comment` for the others
     if: >-
-      !cancelled() && needs.benchmark.result != 'skipped' &&
+      needs.api.result == 'success' &&
       github.event.pull_request.head.repo.full_name == github.repository &&
       github.event.pull_request.user.login != 'dependabot[bot]'
 
-    needs: benchmark
+    needs: api
 
     runs-on: ubuntu-24.04
 
@@ -147,20 +254,126 @@ jobs:
           sparse-checkout: .github/scripts
 
       - uses: actions/download-artifact@v8
-        if: needs.benchmark.result == 'success'
+        with:
+          name: api
+          path: ${{ runner.temp }}/api
+
+      # a new comment only when the API changes; an earlier one is updated
+      # either way, so it does not show changes that the PR no longer has
+      - uses: actions/github-script@v9
+        with:
+          script: |
+            const fs = require('node:fs');
+            const dir = `${process.env.RUNNER_TEMP}/api`;
+            const { changed } = JSON.parse(fs.readFileSync(`${dir}/api.json`, 'utf8'));
+            await require('./.github/scripts/pr-comment.cjs')({
+              github,
+              context,
+              core,
+              marker: '<!-- rregex-api -->',
+              title: '🧩 Public API changes',
+              pr: context.payload.pull_request.number,
+              sha: context.payload.pull_request.head.sha,
+              runUrl: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+              success: true,
+              reportPath: `${dir}/report.md`,
+              create: changed === true,
+            });
+
+  report:
+    needs: [build, bench]
+
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+
+    env:
+      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      LATEST_VERSION: ${{ needs.build.outputs.latest }}
+
+    steps:
+      # bench-compare.mjs only needs bin/ and Node
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: bin
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "26"
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: bench-libs
+
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: benchmark-*
+          merge-multiple: true
+          path: ${{ runner.temp }}/benchmark
+
+      - name: writing report
+        env:
+          REPORT_DIR: ${{ runner.temp }}/benchmark
+        run: |
+          cp build.json "$REPORT_DIR/build.json"
+          node bin/bench-compare.mjs \
+            --base .latest/lib \
+            --head lib \
+            --base-label "\`rregex@${LATEST_VERSION}\` (npm latest)" \
+            --head-label "\`${HEAD_SHA::7}\`" \
+            --runtime "$REPORT_DIR/node.json" \
+            --runtime "$REPORT_DIR/chrome.json" \
+            --runtime "$REPORT_DIR/firefox.json" \
+            --build-time "$REPORT_DIR/build.json" \
+            --markdown "$REPORT_DIR/report.md" \
+            --json "$REPORT_DIR/results.json"
+          cat "$REPORT_DIR/report.md" >> "$GITHUB_STEP_SUMMARY"
+
+      # the `benchmark comment` workflow downloads it by this name
+      - uses: actions/upload-artifact@v7
+        with:
+          name: benchmark
+          path: ${{ runner.temp }}/benchmark
+          retention-days: 7
+
+  comment:
+    # PRs from this repository only, see `benchmark comment` for the others
+    if: >-
+      !cancelled() && needs.build.result != 'skipped' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.user.login != 'dependabot[bot]'
+
+    # all of them: when build or bench fails, report is skipped and the
+    # comment reports the failure
+    needs: [build, bench, report]
+
+    runs-on: ubuntu-24.04
+
+    permissions:
+      contents: read
+      pull-requests: write # to create and update the comment
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: .github/scripts
+
+      - uses: actions/download-artifact@v8
+        if: needs.report.result == 'success'
         with:
           name: benchmark
           path: ${{ runner.temp }}/benchmark
 
       - uses: actions/github-script@v9
         env:
-          SUCCESS: ${{ needs.benchmark.result == 'success' }}
+          SUCCESS: ${{ needs.report.result == 'success' }}
         with:
           script: |
-            await require('./.github/scripts/benchmark-comment.cjs')({
+            await require('./.github/scripts/pr-comment.cjs')({
               github,
               context,
               core,
+              marker: '<!-- rregex-benchmark -->',
+              title: '⏱️ Benchmark results',
               pr: context.payload.pull_request.number,
               sha: context.payload.pull_request.head.sha,
               runUrl: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,

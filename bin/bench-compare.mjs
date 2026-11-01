@@ -1,69 +1,25 @@
 #!/usr/bin/env node
-// Compares the performance of two rregex builds (base vs head), and of head
-// vs the native RegExp, and writes a Markdown report and a JSON file with the
-// results.
+// Writes the report of the benchmarks: compares two rregex builds (base vs
+// head) in each runtime, and head vs the native RegExp, as Markdown and JSON.
 //
 // Usage:
 //   node bin/bench-compare.mjs --base <lib dir> --head <lib dir> \
-//     [--base-label <text>] [--head-label <text>] \
-//     [--runtime <json>]... \
-//     [--markdown <file>] [--json <file>] \
-//     [--rounds 5] [--time 250] [--threshold 10]
+//     --runtime <json> [--runtime <json>]... \
+//     [--base-label <text>] [--head-label <text>] [--build-time <json>] \
+//     [--markdown <file>] [--json <file>] [--threshold 10]
 //
-// The cases run in Node. Each --runtime adds the results of another runtime,
-// written by bin/bench-browser.mjs, to the report.
+// Each --runtime is the samples of one runtime, written by bin/bench-node.mjs
+// or bin/bench-browser.mjs. The runtimes can run on different machines: every
+// delta compares base and head on the same machine. --build-time adds the
+// build time of head, written by bin/build.sh (BUILD_TIMINGS=<file>). The lib
+// dirs only give the size of the wasm files.
 //
-// To reduce noise, base and head run next to each other for every case, the
-// order alternates on each round, and the reported delta is the median of the
-// per-round head/base ratios.
-//
-// Every (round, case) pair runs in a new worker thread. This gives each case a
-// clean wasm memory: older builds use the `wee_alloc` allocator, where calls
-// with large inputs grow the wasm memory until it hits the 4 GiB limit and trap.
+// The reported delta is the median of the per-round head/base ratios.
 
-import { Bench } from 'tinybench';
 import { parseArgs } from 'node:util';
 import { readFile, writeFile, stat } from 'node:fs/promises';
-import { resolve, dirname } from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
-import { Worker, isMainThread, parentPort, workerData } from 'node:worker_threads';
-import {
-  DATA_PATH,
-  addRound,
-  cases,
-  emptySamples,
-  nativeCases,
-  roundOrder,
-  sample,
-  summarize,
-} from './bench-cases.mjs';
-
-const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const data = sample(await readFile(resolve(root, DATA_PATH), 'utf8'));
-
-const importLib = (dir) => import(pathToFileURL(resolve(dir, 'esm.mjs')).href);
-
-if (!isMainThread) {
-  // Worker: run one case for both builds and the native RegExp, in the given order.
-  const { dirs, name, order, time } = workerData;
-  const bench = new Bench({ time, warmupTime: Math.min(100, time) });
-  for (const build of order) {
-    const fn =
-      build === 'native'
-        ? nativeCases(data).get(name)
-        : cases(await importLib(dirs[build]), data).get(name);
-    if (fn) bench.add(build, fn);
-  }
-  await bench.warmup();
-  await bench.run();
-  const result = {};
-  for (const task of bench.tasks) {
-    if (task.result?.error) throw task.result.error;
-    result[task.name] = { mean: task.result.mean, rme: task.result.rme };
-  }
-  parentPort.postMessage(result);
-  process.exit(0);
-}
+import { resolve } from 'node:path';
+import { summarize } from './bench-cases.mjs';
 
 const { values: args } = parseArgs({
   options: {
@@ -72,21 +28,18 @@ const { values: args } = parseArgs({
     'base-label': { type: 'string', default: 'base' },
     'head-label': { type: 'string', default: 'head' },
     runtime: { type: 'string', multiple: true, default: [] },
+    'build-time': { type: 'string' },
     markdown: { type: 'string' },
     json: { type: 'string' },
-    rounds: { type: 'string', default: process.env.BENCH_ROUNDS ?? '5' },
-    time: { type: 'string', default: process.env.BENCH_TIME ?? '250' },
     threshold: { type: 'string', default: process.env.BENCH_THRESHOLD ?? '10' },
   },
 });
 
-if (!args.base || !args.head) {
-  console.error('Usage: bench-compare.mjs --base <lib dir> --head <lib dir> [options]');
+if (!args.base || !args.head || !args.runtime.length) {
+  console.error('Usage: bench-compare.mjs --base <lib dir> --head <lib dir> --runtime <json>... [options]');
   process.exit(2);
 }
 
-const ROUNDS = Number(args.rounds);
-const TIME = Number(args.time);
 const THRESHOLD = Number(args.threshold) / 100;
 
 const dirs = { base: resolve(args.base), head: resolve(args.head) };
@@ -96,35 +49,19 @@ const size = {
 };
 size.delta = size.head / size.base - 1;
 
-const names = [...cases(await importLib(dirs.head), data).keys()];
+const build = args['build-time'] ? JSON.parse(await readFile(args['build-time'], 'utf8')) : null;
 
-/** Runs one case for both builds in a new worker thread. */
-const runCase = (name, order) =>
-  new Promise((done, fail) => {
-    const worker = new Worker(fileURLToPath(import.meta.url), {
-      workerData: { dirs, name, order, time: TIME },
-    });
-    worker.once('message', done);
-    worker.once('error', fail);
-    worker.once('exit', (code) => code && fail(new Error(`${name}: worker exited with code ${code}`)));
-  });
-
-const samples = Object.fromEntries(names.map((name) => [name, emptySamples()]));
-
-for (let round = 0; round < ROUNDS; round++) {
-  for (const name of names) {
-    addRound(samples[name], await runCase(name, roundOrder(round)));
-  }
-  console.error(`round ${round + 1}/${ROUNDS} done`);
-}
-
-const runtimes = [
-  { runtime: `Node ${process.version}`, rounds: ROUNDS, time: TIME, results: summarize(samples, THRESHOLD) },
-];
+const runtimes = [];
 for (const file of args.runtime) {
-  const other = JSON.parse(await readFile(file, 'utf8'));
-  runtimes.push({ ...other, samples: undefined, results: summarize(other.samples, THRESHOLD) });
+  const { samples, ...runtime } = JSON.parse(await readFile(file, 'utf8'));
+  runtimes.push({ ...runtime, results: summarize(samples, THRESHOLD) });
 }
+
+// every case of every runtime, in the order of the first one that has it
+const names = [...new Set(runtimes.flatMap(({ results }) => results.map((r) => r.name)))];
+
+// "5 rounds × 250 ms", once if every runtime used the same settings
+const settings = [...new Set(runtimes.map((r) => `${r.rounds} rounds × ${r.time} ms`))];
 
 const regressions = runtimes.flatMap(({ runtime, results }) =>
   results.filter((r) => r.status === 'regression').map((r) => ({ runtime, ...r })),
@@ -150,7 +87,7 @@ const lines = [];
 lines.push('## ⏱️ Benchmark results', '');
 lines.push(
   `Comparing **head** ${args['head-label']} against **base** ${args['base-label']} ` +
-    `on ${list(runtimes.map((r) => r.runtime))} (${ROUNDS} rounds × ${TIME} ms per case). ` +
+    `on ${list(runtimes.map((r) => r.runtime))} (${settings.join(' / ')} per case). ` +
     `Changes within ±${args.threshold}% are treated as noise.`,
   '',
 );
@@ -186,8 +123,8 @@ for (const name of names) {
 lines.push('');
 
 // details: the times of each runtime
-for (const { runtime, results } of runtimes) {
-  lines.push(`<details><summary>${runtime}: times</summary>`, '');
+for (const { runtime, cpu, results } of runtimes) {
+  lines.push(`<details><summary>${runtime}: times${cpu ? ` <sub>(${cpu})</sub>` : ''}</summary>`, '');
   lines.push('| | Benchmark | base | head | RegExp | Δ time | ± |');
   lines.push('|:-:|:--|--:|--:|--:|--:|--:|');
   for (const r of results) {
@@ -206,16 +143,29 @@ lines.push('| Artifact | base | head | Δ size |');
 lines.push('|:--|--:|--:|--:|');
 lines.push(`| \`rregex.wasm\` | ${fmtBytes(size.base)} | ${fmtBytes(size.head)} | ${fmtDelta(size.delta)} |`);
 lines.push('');
+
+// build time of head (base is the published package, it is not built)
+if (build) {
+  lines.push('| Build step | head |', '|:--|--:|');
+  const seconds = (ms) => `${(ms / 1000).toFixed(2)} s`;
+  for (const { name, ms } of build.steps) lines.push(`| \`${name}\` | ${seconds(ms)} |`);
+  lines.push(`| **Total** | **${seconds(build.total)}** |`, '');
+}
+
 lines.push(
   '<sub>Δ time is the median of the per-round head/base ratios (lower is better). ' +
     'RegExp is the time of the equivalent native `RegExp` call in the same runtime ' +
     '(`new` has no equivalent, `RegExp` compiles on first use). ' +
     '± is the worst relative margin of error seen across rounds. ' +
+    (build
+      ? 'The build time of `cargo build` depends on the state of the CI cache; ' +
+        '`wasm-opt` and `tsdown` run in parallel, so the total is less than the sum. '
+      : '') +
     'Shared CI runners are noisy: re-run the job before you act on a small regression.</sub>',
 );
 
 const markdown = lines.join('\n') + '\n';
-const json = { rounds: ROUNDS, time: TIME, threshold: THRESHOLD, size, runtimes };
+const json = { threshold: THRESHOLD, size, build, runtimes };
 
 if (args.markdown) await writeFile(args.markdown, markdown);
 if (args.json) await writeFile(args.json, JSON.stringify(json, null, 2) + '\n');

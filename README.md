@@ -167,7 +167,14 @@ The time of `rregex` is predictable: the time to copy the input plus a time that
 ### Run the benchmarks
 
 - **Browser:** run `pnpm build`, then `pnpm test:browser`, and open <http://localhost:8080/test/browser/bench.html>. The page shows the charts above and gives a Markdown table and SVG/PNG images of the results.
-- **Node:** the same cases are in [`bin/bench-cases.mjs`](./bin/bench-cases.mjs). [`bin/bench-compare.mjs`](./bin/bench-compare.mjs) compares two builds of `rregex` with each other, and CI uses it on each pull request.
+- **Node:** the same cases are in [`bin/bench-cases.mjs`](./bin/bench-cases.mjs).
+- **Compare two builds:** [`bin/bench-node.mjs`](./bin/bench-node.mjs) and [`bin/bench-browser.mjs`](./bin/bench-browser.mjs) run base and head side by side in one runtime and write the samples to a JSON file. [`bin/bench-compare.mjs`](./bin/bench-compare.mjs) makes the report from these files. CI does this on each pull request, with one job for each runtime:
+
+  ```sh
+  node bin/bench-node.mjs --base <lib dir> --head lib --json node.json
+  node bin/bench-browser.mjs --browser chrome --base <lib dir> --head lib --json chrome.json
+  node bin/bench-compare.mjs --base <lib dir> --head lib --runtime node.json --runtime chrome.json
+  ```
 
 ## Known Issues
 
