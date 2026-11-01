@@ -13,8 +13,8 @@
 // per-round head/base ratios.
 //
 // Every (round, case) pair runs in a new worker thread. This gives each case a
-// clean wasm memory: with the `wee_alloc` allocator, calls with large inputs
-// grow the wasm memory until it hits the 4 GiB limit and traps.
+// clean wasm memory: older builds use the `wee_alloc` allocator, where calls
+// with large inputs grow the wasm memory until it hits the 4 GiB limit and trap.
 
 import { Bench } from 'tinybench';
 import { parseArgs } from 'node:util';
