@@ -1,8 +1,8 @@
 name: benchmark
 
-# Runs the benchmarks of the PR against its base branch and uploads the report
-# as an artifact. The `benchmark comment` workflow posts it on the PR: this
-# workflow runs untrusted code with a read-only token (forks, dependabot).
+# Runs the benchmarks of the PR against its base branch and posts the report
+# as a PR comment (one comment, kept up to date). PRs from forks and dependabot
+# get a read-only token, so the `benchmark comment` workflow posts for them.
 
 on:
   pull_request:
@@ -14,6 +14,7 @@ on:
       - "pnpm-lock.yaml"
       - "bin/build.sh"
       - "bin/bench-compare.mjs"
+      - ".github/scripts/benchmark-comment.cjs"
       - ".github/workflows/benchmark.yml"
 
 concurrency:
@@ -107,3 +108,45 @@ jobs:
           name: benchmark
           path: ${{ runner.temp }}/benchmark
           retention-days: 7
+
+  comment:
+    # PRs from this repository only, see `benchmark comment` for the others
+    if: >-
+      !cancelled() && needs.benchmark.result != 'skipped' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.user.login != 'dependabot[bot]'
+
+    needs: benchmark
+
+    runs-on: ubuntu-24.04
+
+    permissions:
+      contents: read
+      pull-requests: write # to create and update the comment
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: .github/scripts
+
+      - uses: actions/download-artifact@v8
+        if: needs.benchmark.result == 'success'
+        with:
+          name: benchmark
+          path: ${{ runner.temp }}/benchmark
+
+      - uses: actions/github-script@v9
+        env:
+          SUCCESS: ${{ needs.benchmark.result == 'success' }}
+        with:
+          script: |
+            await require('./.github/scripts/benchmark-comment.cjs')({
+              github,
+              context,
+              core,
+              pr: context.payload.pull_request.number,
+              sha: context.payload.pull_request.head.sha,
+              runUrl: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+              success: process.env.SUCCESS === 'true',
+              reportPath: `${process.env.RUNNER_TEMP}/benchmark/report.md`,
+            });

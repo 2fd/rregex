@@ -1,8 +1,10 @@
 name: benchmark comment
 
-# Posts the report of the `benchmark` workflow on its PR, and keeps a single
-# comment up to date. It runs from the default branch with a write token, so
-# it never checks out or runs code from the PR: the artifact is only text.
+# Posts the report of the `benchmark` workflow on PRs from forks and dependabot,
+# which get a read-only token in `pull_request` (PRs from this repository are
+# handled by the `comment` job of `benchmark`). It runs from the default
+# branch with a write token, so it never checks out or runs code from the PR:
+# the artifact is only text, and the PR is resolved from the run metadata.
 
 on:
   workflow_run:
@@ -14,6 +16,7 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
+  contents: read
   actions: read # to download the artifact of the benchmark run
   pull-requests: write # to create and update the comment
 
@@ -21,29 +24,33 @@ jobs:
   comment:
     if: >-
       github.event.workflow_run.event == 'pull_request' &&
-      contains(fromJSON('["success", "failure"]'), github.event.workflow_run.conclusion)
+      contains(fromJSON('["success", "failure"]'), github.event.workflow_run.conclusion) &&
+      (github.event.workflow_run.head_repository.full_name != github.repository ||
+       github.event.workflow_run.actor.login == 'dependabot[bot]')
 
     runs-on: ubuntu-24.04
 
     steps:
+      # default branch: trusted code only
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: .github/scripts
+
       - uses: actions/download-artifact@v8
         if: github.event.workflow_run.conclusion == 'success'
         with:
           name: benchmark
-          path: benchmark
+          path: ${{ runner.temp }}/benchmark
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ github.token }}
 
       - uses: actions/github-script@v9
         with:
           script: |
-            const fs = require('node:fs');
-            const marker = '<!-- rregex-benchmark -->';
             const run = context.payload.workflow_run;
             const { owner, repo } = context.repo;
 
-            // Find the PR from the run metadata, never from the artifact.
-            // `pull_requests` is empty for PRs from forks.
+            // `pull_requests` is empty for PRs from forks
             let pr = run.pull_requests.find((p) => p.head.sha === run.head_sha)?.number;
             if (!pr) {
               const { data } = await github.rest.pulls.list({
@@ -60,37 +67,13 @@ jobs:
               return;
             }
 
-            let report;
-            if (run.conclusion === 'success') {
-              report = fs.readFileSync('benchmark/report.md', 'utf8');
-            } else {
-              report = [
-                '## ⏱️ Benchmark results',
-                '',
-                '> [!CAUTION]',
-                `> The benchmark failed for \`${run.head_sha.slice(0, 7)}\`. See the [workflow run](${run.html_url}).`,
-              ].join('\n');
-            }
-
-            const footer = `\n\n<sub>[Workflow run](${run.html_url}) · updated for \`${run.head_sha.slice(0, 7)}\`</sub>`;
-            const limit = 65536 - marker.length - footer.length - 2;
-            if (report.length > limit) report = report.slice(0, limit - 20) + '\n\n…(truncated)';
-            const body = `${marker}\n${report}${footer}`;
-
-            const comments = await github.paginate(github.rest.issues.listComments, {
-              owner,
-              repo,
-              issue_number: pr,
-              per_page: 100,
+            await require('./.github/scripts/benchmark-comment.cjs')({
+              github,
+              context,
+              core,
+              pr,
+              sha: run.head_sha,
+              runUrl: run.html_url,
+              success: run.conclusion === 'success',
+              reportPath: `${process.env.RUNNER_TEMP}/benchmark/report.md`,
             });
-            const existing = comments.find(
-              (c) => c.user?.login === 'github-actions[bot]' && c.body?.startsWith(marker),
-            );
-
-            if (existing) {
-              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
-              core.info(`Updated comment ${existing.html_url}`);
-            } else {
-              const { data } = await github.rest.issues.createComment({ owner, repo, issue_number: pr, body });
-              core.info(`Created comment ${data.html_url}`);
-            }
