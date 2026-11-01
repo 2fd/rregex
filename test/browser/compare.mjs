@@ -2,7 +2,7 @@
 // and the native RegExp, and reports the samples to `?report=<url>` (used by
 // bin/bench-browser.mjs) or as `globalThis.compareResults`.
 //
-//   compare.html?base=/.base/lib&head=/lib&rounds=5&time=250&report=/results
+//   compare.html?base=/.latest/lib&head=/lib&rounds=5&time=250&report=/results
 
 import { DATA_PATH, addRound, cases, emptySamples, roundOrder, sample } from "../../bin/bench-cases.mjs"
 import { browserName } from "./measure.mjs"

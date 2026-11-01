@@ -1,11 +1,14 @@
 name: benchmark
 
-# Runs the benchmarks of the PR against its base branch and posts the report
-# as a PR comment (one comment, kept up to date). PRs from forks and dependabot
-# get a read-only token, so the `benchmark comment` workflow posts for them.
+# Runs the benchmarks of the PR against the latest release on npm and posts
+# the report as a PR comment (one comment, kept up to date). PRs from forks and
+# dependabot get a read-only token, so the `benchmark comment` workflow posts
+# for them.
 
 on:
   pull_request:
+    branches:
+      - master
     paths:
       - "src/**"
       - "Cargo.toml"
@@ -31,11 +34,9 @@ jobs:
     timeout-minutes: 30
 
     env:
-      BASE_SHA: ${{ github.event.pull_request.base.sha }}
       HEAD_SHA: ${{ github.event.pull_request.head.sha }}
 
     steps:
-      # head must be checked out first: checkout cleans the workspace root
       - uses: actions/checkout@v7
 
       # same paths and key as the release workflow, so the cache of master is reused
@@ -54,11 +55,6 @@ jobs:
         with:
           tool: wasm-pack
 
-      - uses: actions/checkout@v7
-        with:
-          ref: ${{ github.event.pull_request.base.sha }}
-          path: .base
-
       - uses: pnpm/action-setup@v6
         with:
           version: 11
@@ -68,9 +64,18 @@ jobs:
         with:
           node-version: "26"
           cache: pnpm
-          cache-dependency-path: |
-            pnpm-lock.yaml
-            .base/pnpm-lock.yaml
+
+      # the base is the published package: inside the repository, because the
+      # browser benchmark only serves files from there
+      - name: downloading latest
+        run: |
+          meta=$(curl -fsSL https://registry.npmjs.org/rregex/latest)
+          curl -fsSL -o "$RUNNER_TEMP/rregex.tgz" "$(jq -r .dist.tarball <<< "$meta")"
+          test "sha512-$(openssl dgst -sha512 -binary "$RUNNER_TEMP/rregex.tgz" | base64 -w0)" = "$(jq -r .dist.integrity <<< "$meta")"
+          mkdir -p .latest
+          tar xzf "$RUNNER_TEMP/rregex.tgz" -C .latest --strip-components=1 package/lib
+          test -f .latest/lib/esm.mjs -a -f .latest/lib/rregex.wasm
+          echo "LATEST_VERSION=$(jq -r .version <<< "$meta")" >> "$GITHUB_ENV"
 
       - name: setup
         run: |
@@ -86,16 +91,6 @@ jobs:
           node --run build
           test -f lib/esm.mjs -a -f lib/rregex.wasm
 
-      - name: building base
-        working-directory: .base
-        env:
-          # share compiled dependencies with the head build
-          CARGO_TARGET_DIR: ${{ github.workspace }}/target
-        run: |
-          pnpm install --frozen-lockfile
-          node --run build
-          test -f lib/esm.mjs -a -f lib/rregex.wasm
-
       # Chrome and Firefox come with the runner image; the runtimes run one
       # after the other, so they do not compete for the CPU
       - name: running benchmarks
@@ -106,14 +101,14 @@ jobs:
           for browser in chrome firefox; do
             node bin/bench-browser.mjs \
               --browser "$browser" \
-              --base .base/lib \
+              --base .latest/lib \
               --head lib \
               --json "$REPORT_DIR/$browser.json"
           done
           node bin/bench-compare.mjs \
-            --base .base/lib \
+            --base .latest/lib \
             --head lib \
-            --base-label "\`${BASE_SHA::7}\` (${GITHUB_BASE_REF})" \
+            --base-label "\`rregex@${LATEST_VERSION}\` (npm latest)" \
             --head-label "\`${HEAD_SHA::7}\`" \
             --runtime "$REPORT_DIR/chrome.json" \
             --runtime "$REPORT_DIR/firefox.json" \
